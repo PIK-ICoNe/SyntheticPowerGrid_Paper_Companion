@@ -16,7 +16,7 @@ default(grid = false, foreground_color_legend = nothing, bar_edges = false, lw =
 
 ## Parameters
 # Chosen Per Unit System
-P_base = 100 * 10^6
+P_base = 400 * 10^6
 V_base = 380 * 10^3
 
 # Base Admittance
@@ -108,9 +108,11 @@ unique!(C_shunt_per_km) # Capacitance per length [nF/km] -> Same as in the dena 
 
 ##
 # Coupling constant / Admittance Magnitude
-StatsPlots.density(Y_abs_vec ./ Y_base, xlabel = L"|Y_{ml}| \ [p.u.]", ylabel = L"p(|Y_{ml}|)", legend = false, lw = 3)
+StatsPlots.density(Y_abs_vec ./ Y_base, xlabel = L"|Y_{ml}| \ [p.u.]", ylabel = L"p(|Y_{ml}|)", label = "Synthetic Grid", lw = 3)
+plt = vline!([6.0], label = "Theoretical Physics Community", linestyle = :dash)
+savefig(plt, "plots/coupling.pdf")
+
 StatsPlots.density(Y_abs_vec, xlabel = L"|Y_{ml}| \ [1/Ω]", ylabel = L"p(|Y_{ml}|)", lw = 3, label = "Synthetic Networks")
-vline!([6.0], label = "Theoretical Physics Community", linestyle = :dash)
 
 # K ≈ 6 in basin stability lit.?, |Y_ml| = |K_ml|
 # Coupling constant unit?
