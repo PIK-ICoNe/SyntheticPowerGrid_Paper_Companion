@@ -48,39 +48,24 @@ min_len = findmin(df_380kV.length_m / 1000)[1]
 ## Power Grid Generation
 Y_abs_vec = []
 dist_nodes_vec = []
-counter = 0.0
 
 for i in 1:1000
-    g = generate_graph(RandomPowerGrid(100, 1, 1/5, 3/10, 1/3, 1/10, 0.0))
+    g = generate_graph(RandomPowerGrid(100, 1, 1/5, 3/10, 1/3, 1/10, 0.0)) # Generate the Embedded Graph
     
-    # Line Lengths
-    dist_nodes = vcat(weights(g, dense = false)...) # Euclidean Distance of the nodes in EmbeddedGraphs
-    unconnected_idx = findall(iszero, dist_nodes)   # remove all unconnected nodes
-    deleteat!(dist_nodes, unconnected_idx)
-    
-    dist_nodes_mean = mean(dist_nodes)         # Mean Euclidean Distance in EmbeddedGraphs
-    dist_to_km = mean_len_km / dist_nodes_mean # Conversion factor from Euclidean distance to [km]
-    dist_nodes = dist_to_km * dist_nodes       # Distances in [km]
+    # Calculate the line lengths in [km]
+    L_matrix = get_geographic_distances(g, mean_len_km = mean_len_km, shortest_line_km = min_len)
 
-    for i in 1:length(dist_nodes)
-        if dist_nodes[i] < min_len
-            push!(dist_nodes_vec, min_len)
-            counter +=1
-        else
-            push!(dist_nodes_vec, dist_nodes[i])
-        end
+    dest = dst.(edges(g.graph))
+    source = src.(edges(g.graph))
+
+    # Calculate the Admittance in [1 / Ω]
+    Y, _ = get_line_admittance_matrix(g, L_matrix)
+    Y_abs = vcat(abs.(Y)...)
+
+    for i in eachindex(source) # Only look at nodes which are connected by a line
+        push!(dist_nodes_vec, L_matrix[source[i], dest[i]])
+        push!(Y_abs_vec, abs.(Y[source[i], dest[i]]))
     end
-
-    # Calculate  Admittance
-    Y, _ = get_line_admittance_matrix(g)
-    Y_abs = vcat(abs.(Y)...) # per unit conversion
-
-    zero_idx = findall(iszero, Y_abs)
-    deleteat!(Y_abs, zero_idx)
-
-    nan_idx = findall(isnan.(Y_abs))
-    deleteat!(Y_abs, nan_idx)
-    append!(Y_abs_vec, Y_abs)
 end
 max_len = findmax(dist_nodes_vec)[1]
 
@@ -103,7 +88,7 @@ savefig(plt, "plots/line_length.pdf")
 
 ##
 # Shunt Capacitance of the lines
-C_shunt_per_km = df_380kV.c_nfkm ./ ((df_380kV.wires./4) .* (df_380kV.cables./3)) # SciGrid Paper eq. (3)
+C_shunt_per_km = df_380kV.c_nfkm ./ ((df_380kV.wires ./ 4) .* (df_380kV.cables ./ 3)) # SciGrid Paper eq. (3)
 unique!(C_shunt_per_km) # Capacitance per length [nF/km] -> Same as in the dena model 
 
 ##
@@ -115,4 +100,4 @@ savefig(plt, "plots/coupling.pdf")
 StatsPlots.density(Y_abs_vec, xlabel = L"|Y_{ml}| \ [1/Ω]", ylabel = L"p(|Y_{ml}|)", lw = 3, label = "Synthetic Networks")
 
 # K ≈ 6 in basin stability lit.?, |Y_ml| = |K_ml|
-# Coupling constant unit?
+# Coupling constant unit? Should be [p.u.]
