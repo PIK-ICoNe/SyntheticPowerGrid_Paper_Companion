@@ -99,6 +99,8 @@ end
 
 ##
 # P_base ??
+
+## ToDo add pump storage files as well
 mean(capacity)
 mean(mean_availability_plant)
 
