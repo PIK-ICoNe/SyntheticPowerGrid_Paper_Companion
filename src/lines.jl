@@ -1,6 +1,6 @@
 
 function get_mean_line_length()
-    path = string(@__DIR__) * "/sci_grids/"
+    path = string(@__DIR__) * "/../data/sci_grids/"
     line_table = XLSX.readtable(joinpath(path, "links_de_power_151109.xlsx"), "links_de_power_151109")
 
     df_lines = DataFrame(line_table) # Read in Sci Grid Data Set

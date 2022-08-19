@@ -24,7 +24,7 @@ Y_base = P_base / (V_base)^2
 
 ##
 # Loading the SciGrids Dataset
-path = string(@__DIR__) * "/../src/sci_grids/"
+path = string(@__DIR__) * "/../data/sci_grids/"
 line_table = XLSX.readtable(joinpath(path, "links_de_power_151109.xlsx"), "links_de_power_151109")
 
 df_lines = DataFrame(line_table) 
