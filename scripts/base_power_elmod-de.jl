@@ -96,12 +96,6 @@ end
 plant_table = XLSX.readtable(elmod_de, "Plant_con", first_row = 3, column_labels = ["Plant_ID", "Country", "Node_ID", "State", "Dena_zone", "ZoDE_NE_6", "Technology", "Fuel", "Capacity", "Efficiency", "Emission", "Transport", "Not_used_1", "Name"])
 df_plants = DataFrame(plant_table) 
 
-#replace!(df_plants.Name, missing => "Unknown")
-
-#df_plants.Name = String.(df_plants.Name) # Turn name into strings for filtering
-#power_plants = unique(df_plants[:, :Name]) # Some nodes/buses have multiple sub power plants connected to them
-
-
 capacity_nodes = zeros(num_nodes) # Installed nodal Capacity
 mean_availability_nodes = zeros(num_nodes) # Mean availability of the plant
 
@@ -169,3 +163,15 @@ P_0_full = mean(abs.(my_df.delta_P)) # for the entire grid
 
 P_0_380kV = mean(abs.(df_380kV.delta_P)) # 380kV capacity based
 P_0_380kV_ava = mean(abs.(df_380kV.delta_P_ava)) # Based on availability data
+
+##
+# Log-Normal Dist?
+gen_nodes = findall(my_df.delta_P .> 0.0)
+
+P_gen = my_df.delta_P[gen_nodes]
+histogram(P_gen, xaxis = xaxis=(:log10, (findmin(P_gen)[1], findmax(P_gen)[1])), bins = 1000)
+
+
+con_nodes = findall(my_df.delta_P .< 0.0)
+P_con = abs.(my_df.delta_P[con_nodes])
+histogram(P_con, xaxis = xaxis= (:log10, (findmin(P_con)[1], findmax(P_con)[1])), bins = 1000)
