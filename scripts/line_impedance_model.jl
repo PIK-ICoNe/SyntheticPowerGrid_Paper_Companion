@@ -53,7 +53,7 @@ dist_nodes_vec = []
 N = 100
 
 for i in 1:1000
-    g = generate_graph(RandomPowerGrid(N, 1, 1/5, 3/10, 1/3, 1/100, 0.0)) # Generate the Embedded Graph
+    g = generate_graph(RandomPowerGrid(N, 1, 1/5, 3/10, 1/3, 1/10, 0.0)) # Generate the Embedded Graph
     
     # Calculate the line lengths in [km]
     L_matrix = get_effective_distances(g, mean_len_km = mean_len_km, shortest_line_km = min_len)
@@ -81,21 +81,22 @@ peak_synthetic = dens_synthetic.x[dens_max_synthetic[2]]
 # Plotting
 c1 = colorant"coral"
 c2 = colorant"teal"
-
-vline([peak_scigrids], color = c1, label = "", alpha = 0.6, linestyle = :dash)
-vline!([peak_synthetic], color = c2, label = "", alpha = 0.6, linestyle = :dash)
-plot!(dens_synthetic.x, dens_synthetic.density ./ sum(dens_synthetic.density), color = c2, label = "Synthetic Networks", xlabel = L"L [km]", ylabel = L"p(L)")
-plt = plot!(dens_scigrid.x, dens_scigrid.density ./ sum(dens_scigrid.density), color = c1, label = "SciGrids Data", xlims = [min_len, max_len + 10], ylims = [0.0, dens_max_synthetic[1] ./ sum(dens_synthetic.density)  + 0.001])
-
-#savefig(plt, "plots/line_length.pdf")
-
-##
 num_bins = 100
 
+##
+# Mean and standard deviation of the line lengths!
+mean(dist_nodes_vec)
+std(dist_nodes_vec)
+
+mean(lengths)
+std(lengths)
+
+##
 p1 = histogram(lengths, label = "SciGrids Data", color = c1, lw = 0, xlims = [0.0, max_len], bins = num_bins, normalize = true)
 p2 = histogram(dist_nodes_vec, color = c2, label = "Synthetic Networks", lw = 0, bins = num_bins, normalize = true)
 
 plt = Plots.plot(p1, p2; layout = (2,1), size = (500, 500), xlabel = L"L [km]", xlims = [0.0, max_len])
+savefig(plt, "plots/line_length.pdf")
 
 ##
 # Shunt Capacitance of the lines
@@ -104,6 +105,7 @@ unique!(C_shunt_per_km) # Capacitance per length [nF/km] -> Same as in the dena 
 
 ##
 # Coupling constant / Admittance Magnitude
+using StatsBase
 K_dens = kde(Y_abs_vec ./ Y_base)
 mode_K = findmax(K_dens.density)[1]
 median_K = median(Y_abs_vec ./ Y_base)

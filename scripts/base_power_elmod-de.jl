@@ -171,7 +171,7 @@ gen_nodes = findall(my_df.delta_P .> 0.0)
 P_gen = my_df.delta_P[gen_nodes]
 histogram(P_gen, xaxis = xaxis=(:log10, (findmin(P_gen)[1], findmax(P_gen)[1])), bins = 1000)
 
-
+##
 con_nodes = findall(my_df.delta_P .< 0.0)
 P_con = abs.(my_df.delta_P[con_nodes])
 histogram(P_con, xaxis = xaxis= (:log10, (findmin(P_con)[1], findmax(P_con)[1])), bins = 1000)
