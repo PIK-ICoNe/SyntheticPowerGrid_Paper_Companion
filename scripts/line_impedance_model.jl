@@ -92,8 +92,8 @@ mean(lengths)
 std(lengths)
 
 ##
-p1 = histogram(lengths, label = "SciGrids Data", color = c1, lw = 0, xlims = [0.0, max_len], bins = num_bins, normalize = true)
-p2 = histogram(dist_nodes_vec, color = c2, label = "Synthetic Networks", lw = 0, bins = num_bins, normalize = true)
+p1 = histogram(lengths, label = "SciGrids", color = c1, lw = 0, xlims = [0.0, max_len], bins = num_bins, normalize = true, linecolor = :match)
+p2 = histogram(dist_nodes_vec, color = c2, label = "Synthetic Networks", lw = 0, bins = num_bins, normalize = true, linecolor = :match)
 
 plt = Plots.plot(p1, p2; layout = (2,1), size = (500, 500), xlabel = L"L [km]", xlims = [0.0, max_len])
 savefig(plt, "plots/line_length.pdf")
