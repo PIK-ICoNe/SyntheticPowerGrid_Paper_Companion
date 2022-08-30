@@ -25,6 +25,7 @@ demand_table = XLSX.readtable(elmod_de, "H_demand", first_row = 1, column_labels
 df_demand = DataFrame(demand_table) 
 
 P_tot = findmin(df_demand[:, :Demand])[1] # Taher et. al. Paper uses the off-peak scenario!
+t_off_peak = findmin(df_demand[:, :Demand])[2]
 
 ##
 # Node Data
@@ -81,15 +82,9 @@ end
 nodes_380kV = sort(String.(unique(nodes_380kV))) # Nodes will at least appear twice, String for filtering
 
 ##
-# Calculating the mean hourly availability for the different technologies
+# Availability for the different technologies during the off-peak scenario
 ava_table = XLSX.readtable(elmod_de, "H_con")
 df_ava = DataFrame(ava_table)
-
-mean_availability_technology = Dict()
-
-for i in eachindex(names(df_ava))
-    mean_availability_technology[names(df_ava)[i]] = mean(df_ava[:, i])
-end
 
 ##
 # Loading the plant data
@@ -97,7 +92,7 @@ plant_table = XLSX.readtable(elmod_de, "Plant_con", first_row = 3, column_labels
 df_plants = DataFrame(plant_table) 
 
 capacity_nodes = zeros(num_nodes) # Installed nodal Capacity
-mean_availability_nodes = zeros(num_nodes) # Mean availability of the plant
+availability_nodes = zeros(num_nodes) # Availability of the plant
 
 for n in num_nodes # Run over all nodes
     df = filter(row -> row.Node_ID == node_names[n], df_plants) 
@@ -106,27 +101,27 @@ for n in num_nodes # Run over all nodes
         mean_ava = 0.0
         for j in eachindex(df.Technology) # running over all sub power plants
             technology = df.Technology[j] # Technology of the plant
-            mean_ava += df[j, :Capacity] .* mean_availability_technology[technology] # Multiply the installed capacity times the mean availability of that technology
+            mean_ava += df[j, :Capacity] .* df_ava[t_off_peak, technology] # Multiply the installed capacity times the availability of that technology during off-peak scenario
         end
 
-        mean_availability_nodes[n] = mean_ava
+        availability_nodes[n] = mean_ava
         capacity_nodes[n] = sum(df[:, :Capacity]) # Sum of all capacities at the node
     end
 end
 
 C_tot = sum(capacity_nodes) # Similar to the Taher et. al. Paper!
-A_tot = sum(mean_availability_nodes)
+A_tot = sum(availability_nodes)
 
 x = P_tot / A_tot
 y = P_tot / C_tot # Same as in Taher paper
 
 my_df.nodal_capacity = capacity_nodes
-my_df.mean_nodal_availability = mean_availability_nodes
+my_df.mean_nodal_availability = availability_nodes
 
 ##
 # Nodal powers
 ΔP_i = y * capacity_nodes - P_i
-ΔP_i_availability = x * mean_availability_nodes - P_i
+ΔP_i_availability = x * availability_nodes - P_i
 
 my_df.delta_P = ΔP_i
 my_df.delta_P_ava = ΔP_i_availability
@@ -158,6 +153,17 @@ p2 = histogram(df_380kV.delta_P_ava, xaxis = L"\Delta P_{ava} [MW]", lw = 0.0, c
 plt = Plots.plot(p1, p2; layout = (2,1), size = (500, 500), title = "380kV")
 
 ##
+#
+net_type = my_df.delta_P .>= 0.0
+my_df.net_type = net_type
+
+plt = @df my_df groupedhist(:delta_P_ava, group = :net_type, label = ["Net Consumer" "Net Generator"], c = [colorant"sandybrown" colorant"chocolate4"])
+
+#histogram(P_gen, xaxis = L"\Delta P_{ava} [MW]", lw = 0.0, c = colorant"sandybrown", label = "Net Generation", bins = 100, linecolor = :white)
+#plt = histogram!(P_con, xaxis = L"\Delta P_{ava} [MW]", lw = 0.0, c = colorant"chocolate4", label = "Net Consumption", linecolor = :white)
+savefig(plt, "plots/power_distribution_elmod_de.pdf")
+
+##
 # Calculating the Base power and P_0 for the bimodal distribution, P_base = 100MW
 P_0_full = mean(abs.(my_df.delta_P)) # for the entire grid
 
@@ -166,12 +172,11 @@ P_0_380kV_ava = mean(abs.(df_380kV.delta_P_ava)) # Based on availability data
 
 ##
 # Log-Normal Dist?
-gen_nodes = findall(my_df.delta_P .> 0.0)
-
+gen_nodes = findall(my_df.delta_P .>= 0.0) # Generator nodes -> Produce more power than they consume
 P_gen = my_df.delta_P[gen_nodes]
-histogram(P_gen, xaxis = xaxis=(:log10, (findmin(P_gen)[1], findmax(P_gen)[1])), bins = 1000)
 
-##
-con_nodes = findall(my_df.delta_P .< 0.0)
-P_con = abs.(my_df.delta_P[con_nodes])
+con_nodes = findall(my_df.delta_P .< 0.0) #  # Consumer nodes -> Consume more power than they produce
+P_con = my_df.delta_P[con_nodes]
+
+histogram(P_gen, xaxis = xaxis=(:log10, (findmin(P_gen)[1], findmax(P_gen)[1])), bins = 1000)
 histogram(P_con, xaxis = xaxis= (:log10, (findmin(P_con)[1], findmax(P_con)[1])), bins = 1000)
