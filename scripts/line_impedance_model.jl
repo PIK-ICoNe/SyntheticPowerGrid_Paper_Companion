@@ -24,23 +24,17 @@ V_base = 380 * 10^3
 Y_base = P_base / (V_base)^2
 
 ##
-# Loading the SciGrids Dataset
+# Loading the SciGRIDs Dataset
 path = string(@__DIR__) * "/../data/sci_grids/"
 line_table = XLSX.readtable(joinpath(path, "links_de_power_151109.xlsx"), "links_de_power_151109")
 
 df_lines = DataFrame(line_table) 
-df_380kV = filter(row -> row.voltage == 380000, df_lines) # Only look at lines in the 380kV level
+#df_380kV = filter(row -> row.voltage == 380000, df_lines) # Only look at lines in the 380kV level
 lengths = df_lines.length_m / 1000 # Conversion to kilometer
 
 ##
-# Mean Length [km] of German High Voltage Power grid lines using Sci Grids
+# Mean Length [km] of German High Voltage Power grid lines using SciGRIDs
 mean_len_km = mean(lengths) #get_mean_line_length()
-
-##
-# Finding most common line length
-dens_scigrid = kde(lengths)
-dens_max_scigrids = findmax(dens_scigrid.density)
-peak_scigrids = dens_scigrid.x[dens_max_scigrids[2]]
 
 ##
 # Finding the extrema of the dataset
@@ -72,18 +66,6 @@ end
 max_len = findmax(dist_nodes_vec)[1]
 
 ##
-# Most common line length in the synthetic grids
-dens_synthetic = kde(dist_nodes_vec / 1.0)
-dens_max_synthetic = findmax(dens_synthetic.density)
-peak_synthetic = dens_synthetic.x[dens_max_synthetic[2]]
-
-## 
-# Plotting
-c1 = colorant"coral"
-c2 = colorant"teal"
-num_bins = 100
-
-##
 # Mean and standard deviation of the line lengths!
 mean(dist_nodes_vec)
 std(dist_nodes_vec)
@@ -91,16 +73,21 @@ std(dist_nodes_vec)
 mean(lengths)
 std(lengths)
 
+## 
+# Plotting
+c1 = colorant"coral"
+c2 = colorant"teal"
+num_bins = 100
 ##
-p1 = histogram(lengths, label = "SciGrids", color = c1, lw = 0, xlims = [0.0, max_len], bins = num_bins, normalize = true, linecolor = :match)
-p2 = histogram(dist_nodes_vec, color = c2, label = "Synthetic Networks", lw = 0, bins = num_bins, normalize = true, linecolor = :match)
+p1 = histogram(lengths, label = "SciGRID", color = c1, lw = 0, xlims = [0.0, max_len], bins = num_bins, normalize = true, linecolor = :match)
+p2 = histogram(dist_nodes_vec[1:end], color = c2, label = "Synthetic Networks", bins = num_bins, normalize = true, linecolor = :match)
 
 plt = Plots.plot(p1, p2; layout = (2,1), size = (500, 500), xlabel = L"L [km]", xlims = [0.0, max_len])
 savefig(plt, "plots/line_length.pdf")
 
 ##
 # Shunt Capacitance of the lines
-C_shunt_per_km = df_380kV.c_nfkm ./ ((df_380kV.wires ./ 4) .* (df_380kV.cables ./ 3)) # SciGrid Paper eq. (3)
+C_shunt_per_km = df_380kV.c_nfkm ./ ((df_380kV.wires ./ 4) .* (df_380kV.cables ./ 3)) # SciGRID Paper eq. (3)
 unique!(C_shunt_per_km) # Capacitance per length [nF/km] -> Same as in the dena model 
 
 ##

@@ -4,14 +4,10 @@ using Revise
 using SyntheticPowerGridsPaper
 
 using XLSX
-using SyntheticPowerGrids
-using DataFrames, Plots, CSV, Statistics
+using DataFrames, Plots, Statistics
 using LaTeXStrings, StatsPlots
 using Colors
-using EmbeddedGraphs, SyntheticNetworks
-using Graphs
-using KernelDensity
-import SyntheticPowerGrids.get_line_admittance_matrix
+using Statistics
 default(grid = false, foreground_color_legend = nothing, bar_edges = false, lw = 3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 12, tickfontsize = 10)
 
 ##
@@ -26,6 +22,7 @@ df_demand = DataFrame(demand_table)
 
 P_tot = findmin(df_demand[:, :Demand])[1] # Taher et. al. Paper uses the off-peak scenario!
 t_off_peak = findmin(df_demand[:, :Demand])[2]
+off_peak_idx = String(df_demand.time_point[t_off_peak])
 
 ##
 # Node Data
@@ -37,6 +34,15 @@ num_nodes = eachindex(df_nodes.Node_ID)
 node_names = String.(df_nodes.Node_ID)
 
 P_i = df_nodes.Load_share_off_peak * P_tot # Nodal power demand!
+
+##
+# Renewable Energy data -> the off peak scenario is not included! Also ≈ 50% of the time series for the Renewable energy are missing! We should not include it in this study
+pv_table = XLSX.readtable(elmod_de, "H_pv", first_row = 23, column_labels = ["time_point", "21", "22", "23", "24", "25", "26", "41", "42", "71", "72", "73", "74", "75", "76", "81", "82", "83", "84", "91", "92"])
+df_pv = DataFrame(pv_table)
+
+df_pv.time_point = String.(df_pv.time_point)
+
+filter(row -> row.time_point == off_peak_idx, df_pv) 
 
 ## 
 # Generating a new data frame to save all important variables
@@ -51,9 +57,12 @@ df_lines = DataFrame(lines_table)
 line_id = collect(1:size(df_lines)[1])
 df_lines[!, :line_id] = line_id 
 
+mean(df_lines[:, :length]) # Sanity Check -> very close to the value in the SciGrid dataset! :-)
+std(df_lines[:, :length]) 
+findmin(df_lines[:, :length])[1]
+
 # Find only lines in the 380kV level
 df_380kV = filter(row -> row.voltage == 380, df_lines) 
-mean(df_380kV[:, :length]) # Sanity Check -> very close to the value in the SciGrid dataset! :-)
 
 lines_380kV = df_380kV.line_id
 
