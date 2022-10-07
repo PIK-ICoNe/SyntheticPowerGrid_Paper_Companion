@@ -58,8 +58,8 @@ solution1 = PowerGridSolution(sol, pg_fluc_wind)
 hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
 plot!(solution1, [fluc_node_idx[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
-plot(solution1, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-
+plt1 = plot(solution1, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+savefig(plt1, "plots/single_node_fluc.pdf")
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
 nodes = deepcopy(pg.nodes) 
@@ -75,7 +75,8 @@ solution2 = PowerGridSolution(sol, pg_fluc_wind)
 hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
 plot!(solution2, [fluc_node_idx[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
-plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+savefig(plt2, "plots/multi_node_fluc_correlated.pdf")
 
 # calculate performance measures
 N = length(ω_indices)
@@ -106,7 +107,8 @@ sol = solve(ode, Rodas4())
 solution3 = PowerGridSolution(sol, pg_wind_uncorr)
 plot!(solution3, fluc_node_idx, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
-plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+savefig(plt3, "plots/multi_node_fluc_uncorrelated.pdf")
 
 # calculate performance measures
 N = length(ω_indices)
