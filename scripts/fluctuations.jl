@@ -9,6 +9,7 @@ using OrdinaryDiffEq
 using Plots
 using PowerGridNoise
 using Interpolations
+using Statistics
 using LaTeXStrings
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
 
@@ -76,6 +77,15 @@ plot!(solution2, [fluc_node_idx[1]], label = "Active Power",:p, lw = 3, ylabel =
 
 plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 
+# calculate performance measures
+N = length(ω_indices)
+T = tspan[2]; Δt = 0.01
+sol_ω = solution2(0.0:Δt:T,ω_indices,:x_1)
+ω_mean = mean(sol_ω,dims=1)
+
+mean_norm = 1/T*sum(abs2,ω_mean)*Δt |> sqrt     # √{1/T ∫ (1/N ∑ᵢωᵢ)² dt}
+sync_norm = 1/T*sum(abs2,(sol_ω .- ω_mean)/N)*Δt |> sqrt   # √{1/T ∫ [1/N ∑ᵢ(ωᵢ-1/N ∑ⱼωⱼ)]² dt}
+
 ##
 # Multi Node Fluctuations , completely uncorrelated, exchange all PQAlgebraic with FluctuationNode
 # Generate a time series for each node
@@ -97,3 +107,12 @@ solution3 = PowerGridSolution(sol, pg_wind_uncorr)
 plot!(solution3, fluc_node_idx, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
 plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+
+# calculate performance measures
+N = length(ω_indices)
+T = tspan[2]; Δt = 0.01
+sol_ω = solution3(0.0:Δt:T,ω_indices,:x_1)
+ω_mean = mean(sol_ω,dims=1)
+
+mean_norm = 1/T*sum(abs2,ω_mean)*Δt |> sqrt     # √{1/T ∫ (1/N ∑ᵢωᵢ)² dt}
+sync_norm = 1/T*sum(abs2,(sol_ω .- ω_mean)/N)*Δt |> sqrt    # √{1/T ∫ [1/N ∑ᵢ(ωᵢ-1/N ∑ⱼωⱼ)]² dt}
