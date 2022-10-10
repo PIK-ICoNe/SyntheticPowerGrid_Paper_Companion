@@ -11,7 +11,28 @@ using PowerGridNoise
 using Interpolations
 using Statistics
 using LaTeXStrings
+using DelimitedFiles
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
+
+##
+# Load solar time series
+path = joinpath(@__DIR__, "../data/data_lambda0.1_diff0.001.txt")
+Z = readdlm(path)
+Z = f[:, 1]
+
+nan_idxs = findall(typeof.(Z) .!== Float64) # find all NaNs
+deleteat!(Z, nan_idxs)
+
+Δt = 0.001
+t = collect(range(0.0, length = length(Z), step = Δt))
+
+Z_inter = linear_interpolation(t, Z)
+
+plot(t, Z, legend = false, xlabel = L"t[s]", ylabel = L"Z")
+plot!(t, Z_inter(t), legend = false)
+
+p = 0.1
+tspan = (0.0, 30.0)
 
 ##
 # Generating a synthetic Power Grid consisting of droop controlled inverters
@@ -20,7 +41,7 @@ nodal_parameters_b = Dict(:τ_Q => 8.0, :K_P => 5, :K_Q => 0.1, :τ_P => 1.0)
 nodal_parameters_c = Dict(:τ_Q => 8.0, :K_P => 5, :K_Q => 0.1, :τ_P => 0.5)
 
 nodal_dynamics = [(1/6, get_DroopControlledInverterApprox, nodal_parameters_a), (1/6, get_DroopControlledInverterApprox, nodal_parameters_b), (1/6, get_DroopControlledInverterApprox, nodal_parameters_c), (0.5, get_PQ, nothing)]
-num_nodes = 100
+num_nodes = 20
 
 a = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics, lines = :StaticLine)
 pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
@@ -34,66 +55,41 @@ P_set = map(i -> nodes[i].P, fluc_node_idxs) # Load their power set-points
 Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
 
 ##
-# Using Data-Driven Load Profiles model to generate fluctuating time series
-tspan = (0.0, 100.0)
-p = 0.2 # Penetration parameter
-P_fluc, t = load_profile_model(tspan)
-P_mean = mean(P_fluc)
-P_fluc = (P_fluc .- P_mean) ./ P_mean
-P_fluc_inter = linear_interpolation(t, P_fluc) # Interpolate the time series
-
-plot(t, P_fluc, idxs = 1, xlabel = "t[s]", ylabel = "P_fluc(t)", label = "Time series", lw = 3)
-plot!(t, P_fluc_inter(t), idxs = 1,label = "Interpolated time series")
-
-##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * P_fluc_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
-pg_demand_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] * (1 + Z_inter(t)), t -> Q_set[f]), 1:length(fluc_node_idxs))
+pg_solar_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
 # Simulate a trajectory
-ode = ODEProblem(rhs(pg_demand_corr), op.vec, tspan)
+ode = ODEProblem(rhs(pg_solar_corr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
-solution2 = PowerGridSolution(sol, pg_demand_corr)
+solution2 = PowerGridSolution(sol, pg_solar_corr)
 plot(solution2, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-savefig(plt2, "plots/demand_fluc/multi_node_demand_fluc_correlated.pdf")
+savefig(plt2, "plots/solar_fluc/multi_node_solar_fluc_correlated.pdf")
 
 calculate_performance_measures(solution2) # calculate performance measures
 
 ##
-# Multi Node Fluctuations, completely uncorrelated, exchange all PQAlgebraic with FluctuationNode
-# Generate a time series for each node
+# Multi Node Fluctuations, completely uncorrelated
+# Time series is not long enough...
+t_end = floor(t[end] / num_nodes, digits=1)
+tspan = (0.0, t_end)
 
-P_fluc_inter = linear_interpolation(t, P_fluc) # Interpolate the time series
-
-flucs = [load_profile_model(tspan) for x in 1:length(fluc_node_idxs)]
-t = map(f -> flucs[f][2], 1:length(fluc_node_idxs))
-P_mean = map(f -> mean(flucs[f][1]), 1:length(fluc_node_idxs))
-P_flucs = map(f -> (flucs[f][1] .- P_mean[f]) ./ P_mean[f], 1:length(fluc_node_idxs))
-
-P_fluc_inter = map(f -> linear_interpolation(t[f], P_flucs[f]), 1:length(fluc_node_idxs)) # Interpolate the time series
-fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * P_fluc_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
-
-##
-fluc_idx = 20
-plot(t[fluc_idx], P_flucs[fluc_idx], idxs = 1, xlabel = "t[s]", ylabel = "P_fluc(t)", label = "Time series", lw = 3)
-plot!(t[fluc_idx], P_fluc_inter[fluc_idx](t[fluc_idx]), idxs = 1,label = "Interpolated time series")
-
-##
-pg_wind_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] * (1 + Z_inter(t + t_end * f)), t -> Q_set[f]), 1:length(fluc_node_idxs))
+pg_solar_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##
 # Simulate a trajectory
-ode = ODEProblem(rhs(pg_wind_uncorr), op.vec, tspan)
+ode = ODEProblem(rhs(pg_solar_uncorr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
-solution3 = PowerGridSolution(sol, pg_wind_uncorr)
+solution3 = PowerGridSolution(sol, pg_solar_uncorr)
 plot(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-savefig(plt3, "plots/demand_fluc/multi_node_fluc_demand_uncorrelated.pdf")
+savefig(plt3, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated.pdf")
 
 calculate_performance_measures(solution3) # calculate performance measures
