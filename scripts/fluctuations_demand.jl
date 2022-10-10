@@ -52,12 +52,11 @@ pg_demand_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuation
 
 ##
 # Simulate a trajectory
-ode = ODEProblem(rhs(pg_wind_corr), op.vec, tspan)
+ode = ODEProblem(rhs(pg_demand_corr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
 solution2 = PowerGridSolution(sol, pg_demand_corr)
-hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
-plot!(solution2, [fluc_node_idxs[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plot(solution2, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt2, "plots/demand_fluc/multi_node_demand_fluc_correlated.pdf")
@@ -65,12 +64,10 @@ savefig(plt2, "plots/demand_fluc/multi_node_demand_fluc_correlated.pdf")
 calculate_performance_measures(solution2) # calculate performance measures
 
 ##
-# Multi Node Fluctuations , completely uncorrelated, exchange all PQAlgebraic with FluctuationNode
+# Multi Node Fluctuations, completely uncorrelated, exchange all PQAlgebraic with FluctuationNode
 # Generate a time series for each node
 
-
 P_fluc_inter = linear_interpolation(t, P_fluc) # Interpolate the time series
-
 
 flucs = [load_profile_model(tspan) for x in 1:length(fluc_node_idxs)]
 t = map(f -> flucs[f][2], 1:length(fluc_node_idxs))
@@ -81,12 +78,12 @@ P_fluc_inter = map(f -> linear_interpolation(t[f], P_flucs[f]), 1:length(fluc_no
 fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * P_fluc_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 
 ##
-fluc_idx = 3
+fluc_idx = 20
 plot(t[fluc_idx], P_flucs[fluc_idx], idxs = 1, xlabel = "t[s]", ylabel = "P_fluc(t)", label = "Time series", lw = 3)
 plot!(t[fluc_idx], P_fluc_inter[fluc_idx](t[fluc_idx]), idxs = 1,label = "Interpolated time series")
 
 ##
-pg_wind_uncorr = pg_wind_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
+pg_wind_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##
 # Simulate a trajectory
@@ -94,7 +91,7 @@ ode = ODEProblem(rhs(pg_wind_uncorr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
 solution3 = PowerGridSolution(sol, pg_wind_uncorr)
-plot!(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
+plot(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt3, "plots/demand_fluc/multi_node_fluc_demand_uncorrelated.pdf")
