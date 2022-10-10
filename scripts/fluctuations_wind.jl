@@ -29,13 +29,13 @@ pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
 # Accessing the node data from the grid
 ω_indices = findall(n -> :x_1 ∈ symbolsof(n), pg.nodes)
 nodes = deepcopy(pg.nodes) 
-fluc_node_idx = findall(typeof.(pg.nodes) .== PQAlgebraic) # Find all Load Buses in the grid
-P_set = map(i -> nodes[i].P, fluc_node_idx) # Load their power set-points
-Q_set = map(i -> nodes[i].Q, fluc_node_idx)
+fluc_node_idxs = findall(typeof.(pg.nodes) .== PQAlgebraic) # Find all Load Buses in the grid
+P_set = map(i -> nodes[i].P, fluc_node_idxs) # Load their power set-points
+Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
 
 ##
 # Using an intermittent wind power fluctuation Langevin-type model to generate fluctuating time series
-tspan = (0.0, 50.0)
+tspan = (0.0, 100.0)
 D = 0.1 # Intermittence strength
 p = 0.2 # Penetration parameter
 x, t = wind_power_model(tspan, D = D)
@@ -45,76 +45,44 @@ plot(t, x, idxs = 1, xlabel = "t[s]", ylabel = "x(t)", label = "Time series", lw
 plot!(t, x_inter(t), idxs = 1,label = "Interpolated time series", line_style = :dash, xlabel = "t[s]", ylabel = "x(t)")
 
 ##
-# Single Node Fluctuation (exchange one PQAlgebraic with FluctuationNode)
-nodes[fluc_node_idx[1]] = FluctuationNode(t -> P_set[1] + p * x_inter(t), t -> Q_set[1])
-pg_fluc_wind = PowerGrid(nodes, pg.lines)
-
-##
-# Simulate a trajectory
-ode = ODEProblem(rhs(pg_fluc_wind), op.vec, tspan)
-sol = solve(ode, Rodas4())
-
-solution1 = PowerGridSolution(sol, pg_fluc_wind)
-hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
-plot!(solution1, [fluc_node_idx[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
-
-plt1 = plot(solution1, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-savefig(plt1, "plots/single_node_fluc.pdf")
-##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-nodes = deepcopy(pg.nodes) 
-nodes[fluc_node_idx] .= map(f -> FluctuationNode(t -> P_set[f] + p * x_inter(t), t -> Q_set[f]), 1:length(fluc_node_idx))
-pg_wind_corr = PowerGrid(nodes, pg.lines)
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * x_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+pg_wind_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
 # Simulate a trajectory
 ode = ODEProblem(rhs(pg_wind_corr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
-solution2 = PowerGridSolution(sol, pg_fluc_wind)
+solution2 = PowerGridSolution(sol, pg_wind_corr)
 hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
-plot!(solution2, [fluc_node_idx[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plot!(solution2, [fluc_node_idxs[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
 plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt2, "plots/multi_node_fluc_correlated.pdf")
 
-# calculate performance measures
-N = length(ω_indices)
-T = tspan[2]; Δt = 0.01
-sol_ω = solution2(0.0:Δt:T,ω_indices,:x_1)
-ω_mean = mean(sol_ω,dims=1)
-
-mean_norm = 1/T*sum(abs2,ω_mean)*Δt |> sqrt     # √{1/T ∫ (1/N ∑ᵢωᵢ)² dt}
-sync_norm = 1/T*sum(abs2,(sol_ω .- ω_mean)/N)*Δt |> sqrt   # √{1/T ∫ [1/N ∑ᵢ(ωᵢ-1/N ∑ⱼωⱼ)]² dt}
+calculate_performance_measures(solution2) # calculate performance measures
 
 ##
 # Multi Node Fluctuations , completely uncorrelated, exchange all PQAlgebraic with FluctuationNode
 # Generate a time series for each node
 
-flucs = [wind_power_model(tspan, D = D) for x in 1:length(fluc_node_idx)]
-x_inter = map(f -> linear_interpolation(flucs[f][2], flucs[f][1]), 1:length(fluc_node_idx))# Interpolate the time series
+flucs = [wind_power_model(tspan, D = D) for x in 1:length(fluc_node_idxs)]
+x_inter = map(f -> linear_interpolation(flucs[f][2], flucs[f][1]), 1:length(fluc_node_idxs)) # Interpolate the time series
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * x_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 
-##
-nodes = deepcopy(pg.nodes) 
-nodes[fluc_node_idx] .= map(f -> FluctuationNode(t -> P_set[f] + p * x_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idx))
-pg_wind_uncorr = PowerGrid(nodes, pg.lines)
+pg_wind_uncorr = pg_wind_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##
 # Simulate a trajectory
+
 ode = ODEProblem(rhs(pg_wind_uncorr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
 solution3 = PowerGridSolution(sol, pg_wind_uncorr)
-plot!(solution3, fluc_node_idx, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plot!(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 
 plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt3, "plots/multi_node_fluc_uncorrelated.pdf")
 
-# calculate performance measures
-N = length(ω_indices)
-T = tspan[2]; Δt = 0.01
-sol_ω = solution3(0.0:Δt:T,ω_indices,:x_1)
-ω_mean = mean(sol_ω,dims=1)
-
-mean_norm = 1/T*sum(abs2,ω_mean)*Δt |> sqrt     # √{1/T ∫ (1/N ∑ᵢωᵢ)² dt}
-sync_norm = 1/T*sum(abs2,(sol_ω .- ω_mean)/N)*Δt |> sqrt    # √{1/T ∫ [1/N ∑ᵢ(ωᵢ-1/N ∑ⱼωⱼ)]² dt}
+calculate_performance_measures(solution3) # calculate performance measures
