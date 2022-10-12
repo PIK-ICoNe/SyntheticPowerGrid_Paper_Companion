@@ -7,12 +7,11 @@ function generate_powergrid_fluctuations(pg::PowerGrid, fluc_node_idxs, fluctuat
     return pg_fluc
 end
 
-function calculate_performance_measures(solution::PowerGridSolution, frequency_symbol::Symbol = :x_1)
+function calculate_performance_measures(solution::PowerGridSolution, frequency_symbol::Symbol = :x_1, Δt = 0.01)
     ω_indices = findall(n -> frequency_symbol ∈ symbolsof(n), solution.powergrid.nodes)
 
     N = length(ω_indices)
     T = solution.dqsol.t[end]
-    Δt = 0.01
     
     sol_ω = solution(0.0:Δt:T, ω_indices, frequency_symbol)
     ω_mean = mean(sol_ω, dims = 1)

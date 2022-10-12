@@ -55,8 +55,7 @@ ode = ODEProblem(rhs(pg_wind_corr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
 solution2 = PowerGridSolution(sol, pg_wind_corr)
-hline([P_set[1]], label = "Set Point", alpha = 0.3, c = :black)
-plot!(solution2, [fluc_node_idxs[1]], label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plot(solution2, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt2, "plots/wind_fluc/multi_node_fluc_correlated.pdf")
@@ -80,7 +79,7 @@ ode = ODEProblem(rhs(pg_wind_uncorr), op.vec, tspan)
 sol = solve(ode, Rodas4())
 
 solution3 = PowerGridSolution(sol, pg_wind_uncorr)
-plot!(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plot(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
 
 plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
 savefig(plt3, "plots/wind_fluc/multi_node_fluc_uncorrelated.pdf")
