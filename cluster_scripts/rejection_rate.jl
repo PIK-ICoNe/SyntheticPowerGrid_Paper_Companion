@@ -9,7 +9,7 @@ using DelimitedFiles
 
 ##
 num_runs = 100
-num_nodes = collect(range(100, stop = 700, length = 25))
+num_nodes = collect(range(700, stop = 1300, length = 25))
 rejection_vec = zeros(length(num_nodes), num_runs)
 
 ##
