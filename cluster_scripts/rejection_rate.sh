@@ -15,5 +15,5 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "------------------------------------------------------------"
 
-module load julia/1.6.1
+module load julia/1.7.0
 julia --threads=$SLURM_NTASKS rejection_rate.jl
