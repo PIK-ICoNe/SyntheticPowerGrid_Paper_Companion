@@ -5,10 +5,16 @@ module SyntheticPowerGridsPaper
     using PowerDynamics
     using DataFrames
     using Statistics
+    using Plots
+    using Colors
+    using LaTeXStrings
     
     include("lines.jl")
     export get_mean_line_length
 
     include("pg_fluctuations.jl")
     export calculate_performance_measures, generate_powergrid_fluctuations
+
+    include("plotting.jl")
+    export plot_fluc_results
 end

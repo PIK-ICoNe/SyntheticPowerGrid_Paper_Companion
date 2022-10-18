@@ -64,15 +64,20 @@ pg_solar_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations
 ##
 # Simulate a trajectory
 ode = ODEProblem(rhs(pg_solar_corr), op.vec, tspan)
-sol = solve(ode, Rodas4())
+sol_corr_solar = solve(ode, Rodas4())
+pg_sol_corr_solar = PowerGridSolution(sol_corr_solar, pg_solar_corr)
 
-solution2 = PowerGridSolution(sol, pg_solar_corr)
-plot(solution2, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
+##
+# Results
+plt_corr_active_power, plt_corr_frequency, plt_corr_voltage, hist_corr_voltage, hist_corr_frequency = plot_fluc_results(pg_sol_corr_solar, fluc_node_idxs, ω_indices)
 
-plt2 = plot(solution2, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-savefig(plt2, "plots/solar_fluc/multi_node_solar_fluc_correlated.pdf")
+savefig(plt_corr_active_power, "plots/solar_fluc/multi_node_solar_fluc_correlated_active_power.pdf")
+savefig(plt_corr_frequency, "plots/solar_fluc/multi_node_solar_fluc_correlated_frequency.pdf")
+savefig(plt_corr_voltage, "plots/solar_fluc/multi_node_solar_fluc_correlated_voltage.pdf")
+savefig(hist_corr_voltage, "plots/solar_fluc/multi_node_solar_fluc_correlated_voltage_histogram.pdf")
+savefig(hist_corr_frequency, "plots/solar_fluc/multi_node_solar_fluc_correlated_frequency_histogram.pdf")
 
-calculate_performance_measures(solution2) # calculate performance measures
+calculate_performance_measures(pg_sol_corr_solar) # calculate performance measures
 
 ##
 # Multi Node Fluctuations, completely uncorrelated
@@ -86,12 +91,17 @@ pg_solar_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuatio
 ##
 # Simulate a trajectory
 ode = ODEProblem(rhs(pg_solar_uncorr), op.vec, tspan)
-sol = solve(ode, Rodas4())
+sol_uncorr_solar = solve(ode, Rodas4())
+pg_sol_uncorr_solar = PowerGridSolution(sol_uncorr_solar, pg_solar_uncorr)
 
-solution3 = PowerGridSolution(sol, pg_solar_uncorr)
-plot(solution3, fluc_node_idxs, label = "Active Power",:p, lw = 3, ylabel = L"P[p.u.]", xlabel = L"t[s]", legend = false)
+##
+# Results
+plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage, hist_uncorr_voltage, hist_uncorr_frequency = plot_fluc_results(pg_sol_uncorr_solar, fluc_node_idxs, ω_indices)
 
-plt3 = plot(solution3, ω_indices, :x_1, legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
-savefig(plt3, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated.pdf")
+savefig(plt_uncorr_active_power, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_active_power.pdf")
+savefig(plt_uncorr_frequency, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_frequency.pdf")
+savefig(plt_uncorr_voltage, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_voltage.pdf")
+savefig(hist_uncorr_voltage, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_voltage_histogram.pdf")
+savefig(hist_uncorr_frequency, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_frequency_histogram.pdf")
 
-calculate_performance_measures(solution3) # calculate performance measures
+calculate_performance_measures(pg_sol_uncorr_solar) # calculate performance measures
