@@ -19,28 +19,39 @@ default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=
 nodal_parameters = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 0.1, :τ_P => 0.5)
 
 nodal_dynamics = [(0.5, get_DroopControlledInverterApprox, nodal_parameters), (0.5, get_PQ, nothing)]
-num_nodes = 20
+num_nodes = 100
 
 a = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics)
 pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
 
 ##
-# Load solar time series
-path = joinpath(@__DIR__, "../data/data_lambda0.1_diff0.001.txt")
-P_pv = readdlm(path)
-P_pv = P_pv[:, 1]
+# Load all solar time series
+file_paths = readdir("data/PVDataSet", join = true)
+P_pv_arr = Vector{Vector{Float64}}(undef, length(file_paths)) 
 
-nan_idxs = findall(typeof.(P_pv) .!== Float64) # find all NaNs
-deleteat!(P_pv, nan_idxs)
+iter = 1
 
-P_pv .-= mean(P_pv) # Shifting the mean such that only the fluctuations are left
+for path in file_paths
+    P_pv_temp = readdlm(path) # Load the time series
+    P_pv_temp = P_pv_temp[:, 1] # Turn Matrix to an array
+
+    nan_idxs = findall(typeof.(P_pv_temp) .!== Float64) # find all NaNs
+    deleteat!(P_pv_temp, nan_idxs)
+
+    P_pv_temp .-= mean(P_pv_temp) # Shifting the mean such that only the fluctuations are left
+
+    P_pv_arr[iter] = P_pv_temp[191:end] # Throw away beginning of the time series!
+    
+    iter += 1
+end
 
 ##
 # Interpolate the time series
+P_pv_corr = P_pv_arr[1]
 Δt = 0.001
-t = collect(range(0.0, length = length(P_pv), step = Δt))
-P_pv_inter = linear_interpolation(t, P_pv)
-tspan = (0.0, 30.0)
+t = collect(range(0.0, length = length(P_pv_corr), step = Δt))
+P_pv_inter = linear_interpolation(t, P_pv_corr)
+tspan = (0.0, t[end])
 
 ##
 # Accessing the node data from the grid
@@ -52,7 +63,8 @@ Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
 
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+p = 0.2 
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * P_pv_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_solar_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
@@ -76,11 +88,8 @@ writedlm("data/solar_fluctuations/performance_measures_solar_correlated.txt", [m
 
 ##
 # Multi Node Fluctuations, completely uncorrelated
-# Time series is not long enough...
-t_end = floor(t[end] / num_nodes, digits=1)
-tspan = (0.0, t_end)
-
-fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter(t + t_end * f), t -> Q_set[f]), 1:length(fluc_node_idxs))
+P_pv_inter = map(f -> linear_interpolation(t, P_pv_arr[f]), 1:length(fluc_node_idxs)) # Interpolate the time series
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * P_pv_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_solar_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##
