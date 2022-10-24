@@ -51,6 +51,13 @@ length(findall(wires .< 4)) / length(wires) * 100
 
 mean(cables)
 mean(wires)
+##
+# R and X coefficients
+k_c = (df_380kV.cables / 3)
+k_w = (df_380kV.wires / 4)
+
+unique(df_380kV.r_ohmkm .* (k_c .* k_w))
+unique(df_380kV.x_ohmkm .* (k_c .* k_w))
 
 ##
 # Mean Length [km] of German High Voltage Power grid lines using SciGRIDs
