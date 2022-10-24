@@ -27,13 +27,34 @@ Y_base = P_base / (V_base)^2
 # Loading the SciGRIDs Dataset
 path = string(@__DIR__) * "/../data/sci_grids/"
 line_table = XLSX.readtable(joinpath(path, "links_de_power_151109.xlsx"), "links_de_power_151109")
-
 df_lines = DataFrame(line_table) 
-#df_380kV = filter(row -> row.voltage == 380000, df_lines) # Only look at lines in the 380kV level
-lengths = df_lines.length_m / 1000 # Conversion to kilometer
+
+##
+# Cables and Wires
+df_380kV = filter(row -> row.voltage == 380000, df_lines) # Only look at lines in the 380kV level
+
+cables = copy(df_380kV.cables)
+cables_miss = findall(typeof.(cables) .== Missing)
+deleteat!(cables, cables_miss)
+
+wires = copy(df_380kV.wires)
+wires_miss = findall(typeof.(wires) .== Missing)
+deleteat!(wires, wires_miss)
+
+##
+# Plot Histograms
+histogram(cables, legend = false, xlabel = "Number of Cables")
+histogram(wires, legend = false, xlabel = "Number of Wires")
+
+length(findall(cables .> 3)) / length(cables) * 100
+length(findall(wires .< 4)) / length(wires) * 100
+
+mean(cables)
+mean(wires)
 
 ##
 # Mean Length [km] of German High Voltage Power grid lines using SciGRIDs
+lengths = df_lines.length_m / 1000 # Conversion to kilometer
 mean_len_km = mean(lengths) #get_mean_line_length()
 
 ##
