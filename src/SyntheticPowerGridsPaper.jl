@@ -8,6 +8,8 @@ module SyntheticPowerGridsPaper
     using Plots
     using Colors
     using LaTeXStrings
+    using GraphMakie
+    using CairoMakie
     
     include("lines.jl")
     export get_mean_line_length
@@ -16,5 +18,5 @@ module SyntheticPowerGridsPaper
     export calculate_performance_measures, generate_powergrid_fluctuations
 
     include("plotting.jl")
-    export plot_fluc_results
+    export plot_fluc_results, my_graph_plot, plot_histograms
 end

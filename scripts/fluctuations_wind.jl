@@ -15,14 +15,8 @@ using DelimitedFiles
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
 
 ##
-# Generating a synthetic Power Grid consisting of droop controlled inverters
-nodal_parameters = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 0.1, :τ_P => 0.5)
+# Loading a synthetic Power Grid consisting of droop controlled inverters
 
-nodal_dynamics = [(0.5, get_DroopControlledInverterApprox, nodal_parameters), (0.5, get_PQ, nothing)]
-num_nodes = 100
-
-a = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics)
-pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
 
 ##
 # Accessing the node data from the grid
