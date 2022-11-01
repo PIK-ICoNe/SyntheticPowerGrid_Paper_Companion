@@ -15,26 +15,17 @@ using DelimitedFiles
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
 
 ##
-# Generating a synthetic Power Grid consisting of droop controlled inverters
-nodal_parameters = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 0.1, :τ_P => 0.5)
-
-nodal_dynamics = [(0.5, get_DroopControlledInverterApprox, nodal_parameters), (0.5, get_PQ, nothing)]
-num_nodes = 100
-
-a = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics)
-pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
-
-##
-# Accessing the node data from the grid
-ω_indices = findall(n -> :x_1 ∈ symbolsof(n), pg.nodes)
-nodes = deepcopy(pg.nodes) 
-fluc_node_idxs = findall(typeof.(pg.nodes) .== PQAlgebraic) # Find all Load Buses in the grid
-P_set = map(i -> nodes[i].P, fluc_node_idxs) # Load their power set-points
-Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
+# Loading a synthetic Power Grid consisting of droop controlled inverters
+file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_example.json")
+pg = read_powergrid(file_path, Json) 
+op = find_operationpoint(pg)
+ω_indices, nodes, fluc_node_idxs, P_set, Q_set = nodal_data(pg) # Accessing the node data from the grid
 
 ##
 # Using Data-Driven Load Profiles model to generate fluctuating time series
-tspan = (0.0, 1000.0)
+tspan = (0.0, 100.0)
+t_short = collect(0.0:0.01:100.0)
+
 Δt = 10000.0
 p = 0.2 # Penetration parameter
 P_fluc, t = load_profile_model(tspan, Δt = Δt)
@@ -55,15 +46,15 @@ pg_sol_corr_demand = PowerGridSolution(sol_corr, pg_demand_corr)
 
 ##
 # Results
-plt_corr_active_power, plt_corr_frequency, plt_corr_voltage, hist_corr_voltage, hist_corr_frequency  = plot_fluc_results(pg_sol_corr_demand, fluc_node_idxs, ω_indices)
+plt_corr_active_power, plt_corr_frequency, plt_corr_voltage = plot_fluc_results(pg_sol_corr_demand, fluc_node_idxs, ω_indices, t = t_short)
+hist_corr_voltage, hist_corr_frequency = plot_histograms(pg_sol_corr_demand, ω_indices)
+mean_norm, sync_norm = calculate_performance_measures(pg_sol_corr_demand) # calculate performance measures
 
 savefig(plt_corr_active_power, "plots/demand_fluc/multi_node_demand_fluc_correlated_active_power.png")
 savefig(plt_corr_frequency, "plots/demand_fluc/multi_node_demand_fluc_correlated_frequency.png")
 savefig(plt_corr_voltage, "plots/demand_fluc/multi_node_demand_fluc_correlated_voltage.png")
 savefig(hist_corr_voltage, "plots/demand_fluc/multi_node_demand_fluc_correlated_voltage_histogram.png")
 savefig(hist_corr_frequency, "plots/demand_fluc/multi_node_demand_fluc_correlated_frequency_histogram.png")
-
-mean_norm, sync_norm = calculate_performance_measures(pg_sol_corr_demand) # calculate performance measures
 writedlm("data/demand_fluctuations/performance_measures_demand_correlated.txt", [mean_norm, sync_norm])
 
 ##
@@ -91,13 +82,13 @@ pg_sol_uncorr_demand = PowerGridSolution(sol_uncorr, pg_wind_uncorr)
 
 ##
 # Results
-plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage, hist_uncorr_voltage, hist_uncorr_frequency = plot_fluc_results(pg_sol_uncorr_demand, fluc_node_idxs, ω_indices)
+plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage,  = plot_fluc_results(pg_sol_uncorr_demand, fluc_node_idxs, ω_indices, t = t_short)
+hist_uncorr_voltage, hist_uncorr_frequency = plot_histograms(pg_sol_uncorr_demand, ω_indices)
+mean_norm, sync_norm = calculate_performance_measures(pg_sol_uncorr_demand) # calculate performance measures
 
 savefig(plt_uncorr_active_power, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_active_power.png")
 savefig(plt_uncorr_frequency, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_frequency.png")
 savefig(plt_uncorr_voltage, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_voltage.png")
 savefig(hist_uncorr_voltage, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_voltage_histogram.png")
 savefig(hist_uncorr_frequency, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_frequency_histogram.png")
-
-mean_norm, sync_norm = calculate_performance_measures(pg_sol_uncorr_demand) # calculate performance measures
 writedlm("data/demand_fluctuations/performance_measures_demand_uncorrelated.txt", [mean_norm, sync_norm])

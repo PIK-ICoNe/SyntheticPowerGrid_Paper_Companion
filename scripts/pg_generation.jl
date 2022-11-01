@@ -26,7 +26,6 @@ write_powergrid(pg, file_path, Json)
 
 ##
 # Plotting the grid structure
-
-f = my_graph_plot(pg)
+pg = read_powergrid(file_path, Json) 
+f = my_graph_plot(pg) 
 Makie.save(joinpath(@__DIR__, "../plots/grid_structure.pdf"), f)
-#read_powergrid(file_path, Json) # will work once the new pr is merged

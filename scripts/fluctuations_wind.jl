@@ -12,23 +12,20 @@ using Interpolations
 using Statistics
 using LaTeXStrings
 using DelimitedFiles
-default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
+default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=2, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 15, labelfontsize = 15, tickfontsize = 12)
 
 ##
 # Loading a synthetic Power Grid consisting of droop controlled inverters
-
-
-##
-# Accessing the node data from the grid
-ω_indices = findall(n -> :x_1 ∈ symbolsof(n), pg.nodes)
-nodes = deepcopy(pg.nodes) 
-fluc_node_idxs = findall(typeof.(pg.nodes) .== PQAlgebraic) # Find all Load Buses in the grid
-P_set = map(i -> nodes[i].P, fluc_node_idxs) # Load their power set-points
-Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
+file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_example.json")
+pg = read_powergrid(file_path, Json) 
+op = find_operationpoint(pg)
+ω_indices, nodes, fluc_node_idxs, P_set, Q_set = nodal_data(pg) # Accessing the node data from the grid
 
 ##
 # Using an intermittent wind power fluctuation Langevin-type model to generate fluctuating time series
-tspan = (0.0, 1000.0)
+tspan = (0.0, 100.0)
+t_short = collect(0.0:0.01:100.0)
+
 Δt = 10000.0
 D = 0.1 # Intermittence strength
 p = 0.2 # Penetration parameter
@@ -48,7 +45,8 @@ pg_sol_corr_wind = PowerGridSolution(sol_corr, pg_wind_corr)
 
 ##
 # Results
-plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage, hist_uncorr_voltage, hist_uncorr_frequency = plot_fluc_results(pg_sol_corr_wind, fluc_node_idxs, ω_indices)
+plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage = plot_fluc_results(pg_sol_corr_wind, fluc_node_idxs, ω_indices, t = t_short)
+hist_uncorr_voltage, hist_uncorr_frequency = plot_histograms(pg_sol_corr_wind, ω_indices)
 
 savefig(plt_uncorr_active_power, "plots/wind_fluc/multi_node_wind_fluc_correlated_active_power.png")
 savefig(plt_uncorr_frequency, "plots/wind_fluc/multi_node_wind_fluc_correlated_frequency.png")
@@ -77,7 +75,8 @@ pg_sol_uncorr_wind = PowerGridSolution(sol_uncorr, pg_wind_uncorr)
 
 ##
 # Results
-plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage, hist_uncorr_voltage, hist_uncorr_frequency = plot_fluc_results(pg_sol_uncorr_wind, fluc_node_idxs, ω_indices)
+plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage = plot_fluc_results(pg_sol_uncorr_wind, fluc_node_idxs, ω_indices)
+hist_uncorr_voltage, hist_uncorr_frequency = plot_histograms(pg_sol_uncorr_wind, ω_indices)
 
 savefig(plt_uncorr_active_power, "plots/wind_fluc/multi_node_wind_fluc_uncorrelated_active_power.png")
 savefig(plt_uncorr_frequency, "plots/wind_fluc/multi_node_wind_fluc_uncorrelated_frequency.png")

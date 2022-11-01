@@ -19,4 +19,7 @@ module SyntheticPowerGridsPaper
 
     include("plotting.jl")
     export plot_fluc_results, my_graph_plot, plot_histograms
+
+    include("utils.jl")
+    export nodal_data
 end

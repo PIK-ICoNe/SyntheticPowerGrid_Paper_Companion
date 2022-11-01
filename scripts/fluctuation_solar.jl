@@ -15,14 +15,12 @@ using DelimitedFiles
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
 
 ##
-# Generating a synthetic Power Grid consisting of droop controlled inverters
-nodal_parameters = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 0.1, :τ_P => 0.5)
+# Loading a synthetic Power Grid consisting of droop controlled inverters
+file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_example.json")
+pg = read_powergrid(file_path, Json) 
+op = find_operationpoint(pg)
 
-nodal_dynamics = [(0.5, get_DroopControlledInverterApprox, nodal_parameters), (0.5, get_PQ, nothing)]
-num_nodes = 100
-
-a = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics)
-pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(a)
+ω_indices, nodes, fluc_node_idxs, P_set, Q_set = nodal_data(pg) # Accessing the node data from the grid
 
 ##
 # Load all solar time series
@@ -51,15 +49,7 @@ P_pv_corr = P_pv_arr[1]
 Δt = 0.001
 t = collect(range(0.0, length = length(P_pv_corr), step = Δt))
 P_pv_inter = linear_interpolation(t, P_pv_corr)
-tspan = (0.0, t[end])
-
-##
-# Accessing the node data from the grid
-ω_indices = findall(n -> :x_1 ∈ symbolsof(n), pg.nodes)
-nodes = deepcopy(pg.nodes) 
-fluc_node_idxs = findall(typeof.(pg.nodes) .== PQAlgebraic) # Find all Load Buses in the grid
-P_set = map(i -> nodes[i].P, fluc_node_idxs) # Load their power set-points
-Q_set = map(i -> nodes[i].Q, fluc_node_idxs)
+tspan = (0.0, 100.0)
 
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
@@ -75,7 +65,8 @@ pg_sol_corr_solar = PowerGridSolution(sol_corr_solar, pg_solar_corr)
 
 ##
 # Results
-plt_corr_active_power, plt_corr_frequency, plt_corr_voltage, hist_corr_voltage, hist_corr_frequency = plot_fluc_results(pg_sol_corr_solar, fluc_node_idxs, ω_indices)
+plt_corr_active_power, plt_corr_frequency, plt_corr_voltage = plot_fluc_results(pg_sol_corr_solar, fluc_node_idxs, ω_indices, t = t_short)
+hist_corr_voltage, hist_corr_frequency = plot_histograms(pg_sol_corr_solar, ω_indices)
 
 savefig(plt_corr_active_power, "plots/solar_fluc/multi_node_solar_fluc_correlated_active_power.png")
 savefig(plt_corr_frequency, "plots/solar_fluc/multi_node_solar_fluc_correlated_frequency.png")
@@ -100,7 +91,8 @@ pg_sol_uncorr_solar = PowerGridSolution(sol_uncorr_solar, pg_solar_uncorr)
 
 ##
 # Results
-plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage, hist_uncorr_voltage, hist_uncorr_frequency = plot_fluc_results(pg_sol_uncorr_solar, fluc_node_idxs, ω_indices)
+plt_uncorr_active_power, plt_uncorr_frequency, plt_uncorr_voltage = plot_fluc_results(pg_sol_uncorr_solar, fluc_node_idxs, ω_indices, t = t_short)
+hist_uncorr_voltage, hist_uncorr_frequency = plot_histograms(pg_sol_uncorr_solar, ω_indices)
 
 savefig(plt_uncorr_active_power, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_active_power.png")
 savefig(plt_uncorr_frequency, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_frequency.png")
