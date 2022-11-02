@@ -7,12 +7,12 @@ using SyntheticPowerGrids
 using PowerDynamics
 using OrdinaryDiffEq
 using Plots
-using PowerGridNoise
+using PowerGridNoise  
 using Interpolations
 using Statistics
 using LaTeXStrings
 using DelimitedFiles
-default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
+default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=2, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
 
 ##
 # Loading a synthetic Power Grid consisting of droop controlled inverters
@@ -53,8 +53,7 @@ tspan = (0.0, 100.0)
 
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-p = 0.2 
-fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * P_pv_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_solar_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
@@ -80,7 +79,7 @@ writedlm("data/solar_fluctuations/performance_measures_solar_correlated.txt", [m
 ##
 # Multi Node Fluctuations, completely uncorrelated
 P_pv_inter = map(f -> linear_interpolation(t, P_pv_arr[f]), 1:length(fluc_node_idxs)) # Interpolate the time series
-fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * P_pv_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_solar_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##

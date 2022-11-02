@@ -8,7 +8,7 @@ function plot_fluc_results(solution::PowerGridSolution, fluc_node_idxs, ω_indic
 
     plt_frequency = Plots.plot()
     for idx in ω_indices
-        plt_frequency = Plots.plot!(t, solution(t, idx, :x_1), legend = false, ylabel = L"ω[rad / s]", xlabel = L"t[s]")
+        plt_frequency = Plots.plot!(t, solution(t, idx, :x_1)./(2π), legend = false, ylabel = L"\Delta f[Hz]", xlabel = L"t[s]")
     end
 
     plt_voltage = Plots.plot()

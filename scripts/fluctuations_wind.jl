@@ -12,7 +12,7 @@ using Interpolations
 using Statistics
 using LaTeXStrings
 using DelimitedFiles
-default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=2, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 15, labelfontsize = 15, tickfontsize = 12)
+default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=2, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
 
 ##
 # Loading a synthetic Power Grid consisting of droop controlled inverters
@@ -28,13 +28,12 @@ t_short = collect(0.0:0.01:100.0)
 
 Δt = 10000.0
 D = 0.1 # Intermittence strength
-p = 0.2 # Penetration parameter
 x, t = wind_power_model(tspan, D = D, Δt = Δt)
 x_inter = linear_interpolation(t, x) # Interpolate the time series
 
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * x_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + x_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_wind_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
@@ -64,7 +63,7 @@ writedlm("data/wind_fluctuations/performance_measures_wind_correlated.txt", [mea
 
 flucs = [wind_power_model(tspan, D = D, Δt = Δt) for x in 1:length(fluc_node_idxs)]
 x_inter = map(f -> linear_interpolation(flucs[f][2], flucs[f][1]), 1:length(fluc_node_idxs)) # Interpolate the time series
-fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * x_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + x_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_wind_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ##

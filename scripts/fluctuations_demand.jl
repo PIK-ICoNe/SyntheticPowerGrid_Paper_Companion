@@ -12,7 +12,7 @@ using Interpolations
 using Statistics
 using LaTeXStrings
 using DelimitedFiles
-default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=1.5, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 15, tickfontsize = 10)
+default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=2, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
 
 ##
 # Loading a synthetic Power Grid consisting of droop controlled inverters
@@ -27,7 +27,6 @@ tspan = (0.0, 100.0)
 t_short = collect(0.0:0.01:100.0)
 
 Δt = 10000.0
-p = 0.2 # Penetration parameter
 P_fluc, t = load_profile_model(tspan, Δt = Δt)
 P_mean = mean(P_fluc)
 P_fluc = (P_fluc .- P_mean) ./ P_mean
@@ -35,7 +34,7 @@ P_fluc_inter = linear_interpolation(t, P_fluc) # Interpolate the time series
 
 ##
 # Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
-fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + p * P_fluc_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + P_fluc_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 pg_demand_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
 ##
@@ -69,7 +68,7 @@ P_mean = map(f -> mean(flucs[f][1]), 1:length(fluc_node_idxs))
 P_flucs = map(f -> (flucs[f][1] .- P_mean[f]) ./ P_mean[f], 1:length(fluc_node_idxs))
 
 P_fluc_inter = map(f -> linear_interpolation(t[f], P_flucs[f]), 1:length(fluc_node_idxs)) # Interpolate the time series
-fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + p * P_fluc_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
+fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + P_fluc_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
 
 ##
 pg_wind_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)

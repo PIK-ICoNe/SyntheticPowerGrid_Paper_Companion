@@ -25,7 +25,7 @@ for n in eachindex(num_nodes)
     pg_struct = PGGeneration(num_nodes = Int64(num_nodes[n]), nodal_dynamics = nodal_dynamics, slack = true, lines = :StaticLine)
     for r in 1:num_runs
         _, _, _, rejections = generate_powergrid_dynamics(pg_struct)
-        rejection_vec[n, r] = rejections
+        rejection_vec[n, r] = rejections.total
     end
 end
 
