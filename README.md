@@ -1,6 +1,6 @@
 # Synthetic Power Grid Paper Companion
 
-This repository contain all code to recover the results in the SyntheticPowerGrid Paper. All relevant files can be found in the `scripts` folder.
+This repository contains all source code to recover the results in the "A Framework for Synthetic Power System Dynamics" Paper. All relevant files can be found in the `scripts` folder.
 
 In order to run the scripts the following packages have to be added manually:
 
