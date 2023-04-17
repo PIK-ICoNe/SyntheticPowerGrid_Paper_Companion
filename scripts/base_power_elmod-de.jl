@@ -166,10 +166,8 @@ plt = Plots.plot(p1, p2; layout = (2,1), size = (500, 500), title = "380kV")
 net_type = my_df.delta_P .>= 0.0
 my_df.net_type = net_type
 
-plt = @df my_df groupedhist(:delta_P_ava, group = :net_type, label = ["Net Consumer" "Net Generator"], c = [colorant"sandybrown" colorant"chocolate4"])
+plt = @df my_df groupedhist(:delta_P_ava, group = :net_type, label = ["Net Consumer" "Net Generator"], c = [colorant"sandybrown" colorant"chocolate4"], normalize=true, xlabel = L"\Delta P [MW]", ylabel = L"p(\Delta P)")
 
-#histogram(P_gen, xaxis = L"\Delta P_{ava} [MW]", lw = 0.0, c = colorant"sandybrown", label = "Net Generation", bins = 100, linecolor = :white)
-#plt = histogram!(P_con, xaxis = L"\Delta P_{ava} [MW]", lw = 0.0, c = colorant"chocolate4", label = "Net Consumption", linecolor = :white)
 savefig(plt, "plots/power_distribution_elmod_de.pdf")
 
 ##
@@ -178,14 +176,3 @@ P_0_full = mean(abs.(my_df.delta_P)) # for the entire grid
 
 P_0_380kV = mean(abs.(df_380kV.delta_P)) # 380kV capacity based
 P_0_380kV_ava = mean(abs.(df_380kV.delta_P_ava)) # Based on availability data
-
-##
-# Log-Normal Dist?
-gen_nodes = findall(my_df.delta_P .>= 0.0) # Generator nodes -> Produce more power than they consume
-P_gen = my_df.delta_P[gen_nodes]
-
-con_nodes = findall(my_df.delta_P .< 0.0) #  # Consumer nodes -> Consume more power than they produce
-P_con = my_df.delta_P[con_nodes]
-
-histogram(P_gen, xaxis = xaxis=(:log10, (findmin(P_gen)[1], findmax(P_gen)[1])), bins = 1000)
-histogram(P_con, xaxis = xaxis= (:log10, (findmin(P_con)[1], findmax(P_con)[1])), bins = 1000)
