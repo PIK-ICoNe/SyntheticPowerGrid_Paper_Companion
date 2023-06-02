@@ -30,9 +30,5 @@ for n in eachindex(num_nodes)
 end
 
 ##
-#rejection_mean = map(x -> mean(rejection_vec[x, :]), eachindex(num_nodes))
-#rejection_std = map(x -> std(rejection_vec[x, :]), eachindex(num_nodes))
-
-##
 # save Data
 writedlm(joinpath(@__DIR__, "../data/rejection_rate.txt"), rejection_vec)
