@@ -62,7 +62,7 @@ unique(df_380kV.x_ohmkm .* (k_c .* k_w))
 ##
 # Mean Length [km] of German High Voltage Power grid lines using SciGRIDs
 lengths = df_lines.length_m / 1000 # Conversion to kilometer
-mean_len_km = mean(lengths) #get_mean_line_length()
+mean_len_km = mean(lengths) 
 
 ##
 # Finding the extrema of the dataset

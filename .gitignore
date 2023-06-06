@@ -4,4 +4,5 @@
 /data/demand_fluctuations
 /data/wind_fluctuations
 /data/solar_fluctuations
-
+*.err
+*.out
