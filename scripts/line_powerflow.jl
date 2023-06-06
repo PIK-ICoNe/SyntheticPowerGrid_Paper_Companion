@@ -13,13 +13,15 @@ using Graphs
 using DelimitedFiles
 import SyntheticPowerGrids.validate_power_flow_on_lines
 import SyntheticPowerGrids.get_effective_distances
+import SyntheticPowerGrids.get_ancillary_operationpoint
+import SyntheticPowerGrids.get_initial_guess
 default(grid = false, foreground_color_legend = nothing, bar_edges = false, lw = 3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 12, tickfontsize = 10)
 
 mean_len_km = 37.12856121212121
 area_ge = 357111 # [km²]
 a_ge = sqrt(area_ge)
 
-##
+## LArge grid
 file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_large.json")
 pg = read_powergrid(file_path, Json) 
 op = find_operationpoint(pg)
@@ -77,7 +79,7 @@ ll_max = maximum(line_loading)
 plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
 savefig(plt, "plots/line_loading_distribution_large_grid.pdf")
 
-##
+## Peak demand grid
 file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_peak_demand.json")
 pg = read_powergrid(file_path, Json) 
 op = find_operationpoint(pg)
@@ -122,7 +124,7 @@ sum(p_nodes[con])
 
 
 ##
-_, _, P, P_max = validate_power_flow_on_lines(op, pg_struct)
+_, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
 P = vcat(values(P)...)
 P_max = vcat(values(P_max)...)
 
@@ -133,3 +135,41 @@ ll_max = maximum(line_loading)
 
 plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
 savefig(plt, "plots/line_loading_distribution_small_grid.pdf")
+
+## Power Normalized via area
+file_path = joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized.json")
+pg = read_powergrid(file_path, Json) 
+
+p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
+v_nodes = ones(num_nodes)
+
+op_ancillary = get_ancillary_operationpoint(p_nodes, v_nodes, num_nodes, num_nodes, pg.lines)
+ic_guess = get_initial_guess(pg, op_ancillary)
+
+
+op = find_operationpoint(pg, ic_guess)
+num_nodes = length(pg.nodes)
+
+##
+histogram(p_nodes, bins = 20)
+
+mean(abs.(p_nodes))
+
+gen = findall(p_nodes .> 0.0)
+con = findall(p_nodes .< 0.0)
+
+sum(p_nodes[gen])
+sum(p_nodes[con])
+
+##
+_, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
+P = vcat(values(P)...)
+P_max = vcat(values(P_max)...)
+
+line_loading = (P ./ P_max) .* 100
+
+ll_mean = mean(line_loading)
+ll_max = maximum(line_loading)
+
+plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
+savefig(plt, "plots/line_loading_distribution_power_normalized_via_area.pdf")

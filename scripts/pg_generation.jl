@@ -52,3 +52,32 @@ pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(pg_struct)
 file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_peak_demand.json")
 write_powergrid(pg, file_path, Json)
 writedlm(joinpath(@__DIR__, "../data/powergrids/power_grid_peak_demand_vertex_positions.txt"), pg_struct_new.embedded_graph.vertexpos)
+
+## Grid with power normalized via area
+using Distributions
+num_nodes = 100
+P_base = 1.0e8 
+P0 = 1.0
+
+power_dist = MixtureModel(Normal[Normal(P0, P0/2), Normal(-P0, P0/2)]) # Distribution for the active power
+P_vec = rand(power_dist, num_nodes)                                    # Power Generation / Consumption of the nodes
+P_vec .-= sum(P_vec) / (num_nodes)                                     # Assure power balance
+
+P_tot_on_peak = (86031 * 10^6/4) * (1 / P_base) # MW to p.u. 
+consumers = findall(P_vec .< 0.0)
+demand_synthetic = abs.(sum(P_vec[consumers]))
+
+c_demand = P_tot_on_peak / demand_synthetic
+
+P_re = c_demand * P_vec
+
+mean(abs.(P_re))
+
+##
+pg_struct = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics, lines = :StaticLine , P_vec = P_re, maxiters = 10)
+pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(pg_struct)
+
+file_path = joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized.json")
+write_powergrid(pg, file_path, Json)
+writedlm(joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized_vertex_positions.txt"), pg_struct_new.embedded_graph.vertexpos)
+

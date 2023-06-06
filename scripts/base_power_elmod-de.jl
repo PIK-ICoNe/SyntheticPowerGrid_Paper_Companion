@@ -21,6 +21,8 @@ demand_table = XLSX.readtable(elmod_de, "H_demand", first_row = 1, column_labels
 df_demand = DataFrame(demand_table) 
 
 P_tot = findmin(df_demand[:, :Demand])[1] # Taher et. al. Paper uses the off-peak scenario!
+P_tot_on_peak = findmax(df_demand[:, :Demand])[1] # Taher et. al. Paper uses the off-peak scenario!
+
 t_off_peak = findmin(df_demand[:, :Demand])[2]
 off_peak_idx = String(df_demand.time_point[t_off_peak])
 
