@@ -10,6 +10,7 @@ using Distributions
 using DelimitedFiles
 using KernelDensity
 using StatsBase
+using Colors
 
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
 
@@ -20,9 +21,9 @@ f_demand = readdlm("data/demand_fluctuations/uncorr/frequencies.txt")
 f_wind = readdlm("data/wind_fluctuations/uncorr/frequencies.txt")
 f_solar = readdlm("data/solar_fluctuations/uncorr/frequencies.txt")
 
-f_d_mean = map(n -> mean(f_demand[n, :]), 1:size(f_demand)[1])
-f_w_mean = map(n -> mean(f_wind[n, :]), 1:size(f_wind)[1])
-f_s_mean = map(n -> mean(f_solar[n, :]), 1:size(f_solar)[1])
+f_d_mean = mean(f_demand, dims = 2)
+f_w_mean = mean(f_wind, dims = 2)
+f_s_mean = mean(f_solar, dims = 2)
 
 ## Statistics
 mean(f_demand)
@@ -41,9 +42,9 @@ f_d_ac = autocor(f_d_mean, lags)
 f_w_ac = autocor(f_w_mean, lags)
 f_s_ac = autocor(f_s_mean, lags)
 
-plot(dts, f_w_ac, label = L"f_w")
-plot!(dts, f_d_ac, label = L"f_d")
-plot!(dts, f_s_ac, ylabel = L"c(\Delta t)", xlabel = L"\Delta t [min]", label = L"f_s")
+plot(dts, f_s_ac, ylabel = L"c(\Delta t)", xlabel = L"\Delta t [min]", label = L"f_s", c = colorant"goldenrod2")
+plot!(dts, f_w_ac, label = L"f_w", c = colorant"teal", ls = :dashdot)
+plot!(dts, f_d_ac, label = L"f_d", c = colorant"coral", ls = :dot)
 
 ## Probability Density Function
 pdf_demand = kde(vcat(f_demand...))
@@ -73,5 +74,5 @@ pdf_increments = kde(ΔΘf)
 d_normal = fit(Normal{Float64}, ΔΘf)
 pdf_normal = map(i -> pdf(d_normal, pdf_increments.x[i]), 1:length(pdf_increments.x))
 
-plot(pdf_increments.x / σ_ΔΘf, pdf_normal)
-plot!(pdf_increments.x / σ_ΔΘf, pdf_increments.density, legend = false, xlabel = L"\Delta_{\Theta} f / \sigma_{\Delta_{\Theta} f}", ylabel = L"p(\Delta_{\Theta} f)", yaxis = :log, ylims = [10^-5, 200])
+plot(pdf_increments.x / σ_ΔΘf, pdf_normal, c = colorant"chocolate3", label = L"Normal", ls = :dash)
+plot!(pdf_increments.x / σ_ΔΘf, pdf_increments.density, c = colorant"teal", label = L"Wind", xlabel = L"\Delta_{\Theta} f / \sigma_{\Delta_{\Theta} f}", ylabel = L"p(\Delta_{\Theta} f)", yaxis = :log, ylims = [10^-5, 200])
