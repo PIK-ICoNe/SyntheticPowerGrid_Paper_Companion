@@ -56,6 +56,7 @@ pg = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations)
 
 ode = ODEProblem(rhs(pg), op.vec, tspan)
 sol = solve(ode, Rodas4())
+pg_sol = PowerGridSolution(sol, pg)
 
 f = sol(t_stops, idxs = f_idx).u./(2π)
 p = pg_sol(t_stops, fluc_node_idxs, :p)

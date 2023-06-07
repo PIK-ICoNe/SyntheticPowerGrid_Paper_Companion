@@ -44,16 +44,19 @@ f_s_ac = autocor(f_s_mean, lags)
 
 plot(dts, f_s_ac, ylabel = L"c(\Delta t)", xlabel = L"\Delta t [min]", label = L"f_s", c = colorant"goldenrod2")
 plot!(dts, f_w_ac, label = L"f_w", c = colorant"teal", ls = :dashdot)
-plot!(dts, f_d_ac, label = L"f_d", c = colorant"coral", ls = :dot)
+plt_ac = plot!(dts, f_d_ac, label = L"f_d", c = colorant"coral", ls = :dot)
+savefig(plt_ac, "plots/autocorrelation.pdf")
 
 ## Probability Density Function
 pdf_demand = kde(vcat(f_demand...))
 pdf_wind = kde(vcat(f_wind...))
 pdf_solar = kde(vcat(f_solar...))
 
-plot(pdf_demand.x, pdf_demand.density ./ findmax(pdf_demand.density)[1], label = L"f_d")
-plot!(pdf_wind.x, pdf_wind.density ./ findmax(pdf_wind.density)[1], label = L"f_w")
-plot!(pdf_solar.x, pdf_solar.density ./ findmax(pdf_solar.density)[1], label = L"f_s", xaxis = L"\Delta f [Hz]")
+plot(pdf_solar.x, pdf_solar.density ./ findmax(pdf_solar.density)[1], c = colorant"goldenrod2", label = L"f_s", xaxis = L"\Delta f [Hz]")
+plot!(pdf_wind.x, pdf_wind.density ./ findmax(pdf_wind.density)[1], label = L"f_w", c = colorant"teal", ls = :dashdot)
+plt_pdf = plot!(pdf_demand.x, pdf_demand.density ./ findmax(pdf_demand.density)[1], label = L"f_d", c = colorant"coral", ls = :dot)
+
+savefig(plt_pdf, "plots/pdf_frequency.pdf")
 
 ## Frequency Increment Statistics
 Θ = 0.2
@@ -75,4 +78,6 @@ d_normal = fit(Normal{Float64}, ΔΘf)
 pdf_normal = map(i -> pdf(d_normal, pdf_increments.x[i]), 1:length(pdf_increments.x))
 
 plot(pdf_increments.x / σ_ΔΘf, pdf_normal, c = colorant"chocolate3", label = L"Normal", ls = :dash)
-plot!(pdf_increments.x / σ_ΔΘf, pdf_increments.density, c = colorant"teal", label = L"Wind", xlabel = L"\Delta_{\Theta} f / \sigma_{\Delta_{\Theta} f}", ylabel = L"p(\Delta_{\Theta} f)", yaxis = :log, ylims = [10^-5, 200])
+plt_increments = plot!(pdf_increments.x / σ_ΔΘf, pdf_increments.density, c = colorant"teal", label = L"f_w", xlabel = L"\Delta_{\Theta} f / \sigma_{\Delta_{\Theta} f}", ylabel = L"p(\Delta_{\Theta} f)", yaxis = :log, ylims = [10^-5, 200])
+
+savefig(plt_increments, "plots/frequency_increments.pdf")

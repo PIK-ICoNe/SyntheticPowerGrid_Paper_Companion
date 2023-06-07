@@ -18,7 +18,7 @@ module SyntheticPowerGridsPaper
     export calculate_performance_measures, generate_powergrid_fluctuations
 
     include("plotting.jl")
-    export plot_fluc_results, my_graph_plot, plot_histograms
+    export my_graph_plot
 
     include("utils.jl")
     export nodal_data
