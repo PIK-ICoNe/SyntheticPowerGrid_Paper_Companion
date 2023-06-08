@@ -28,7 +28,7 @@ pg = read_powergrid(file_path, Json)
 f = my_graph_plot(pg) 
 Makie.save(joinpath(@__DIR__, "../plots/grid_structure.svg"), f)
 
-## Generate a test grid with the size of the ELMOD grid
+## Generate a test grid with the size of the ELMOD grid and peak demand
 parameters_third_order = Dict(:X => 1.0, :γ => 0.2, :α => 2.0) 
 parameters_droop_controlled = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 5.0, :τ_P => 1.0) 
 
@@ -53,7 +53,7 @@ file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_peak_dem
 write_powergrid(pg, file_path, Json)
 writedlm(joinpath(@__DIR__, "../data/powergrids/power_grid_peak_demand_vertex_positions.txt"), pg_struct_new.embedded_graph.vertexpos)
 
-## Grid with power normalized via area
+## Grid with power normalized via area, peak demand
 using Distributions
 num_nodes = 100
 P_base = 1.0e8 

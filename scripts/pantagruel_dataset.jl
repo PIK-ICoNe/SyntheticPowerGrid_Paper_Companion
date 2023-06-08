@@ -19,11 +19,11 @@ df_buses_380kV = filter(row -> row."Voltage [KV]" == 380, df_buses)
 
 demand_MW = df_buses_380kV[:, "Demand [MW]"]
 
-histogram(demand_MW, xaxis = L"Demand \, \, [MW]", legend = false)
-
-nodes_380kV = df_buses_380kV.ID
+plt = histogram(demand_MW, xaxis = L"Demand \, \, [MW]", legend = false, normalize = :probability)
+savefig(plt, "plots/pantagruel_demand.pdf")
 
 ## Lines
+nodes_380kV = df_buses_380kV.ID
 path = string(@__DIR__) * "/../data/pantagruel/lines.csv"
 df_lines = DataFrame(CSV.File(open(path)))
 
@@ -35,9 +35,11 @@ lines_380kV = []
 
 for node in nodes_380kV
     df = filter(row -> row.ID1 == node, df_lines)
+    df = filter(row -> row.ID2 == node, df_lines)
     append!(lines_380kV, df[:, "line_id"])
 end
 lines_380kV = unique(lines_380kV)
+
 ##
 df_lines_380kv = df_lines[lines_380kV, :]
 
@@ -45,6 +47,10 @@ x_per_km = 265 * 10^-3 # Ω/km for 380kV level: https://storage.googleapis.com/
 
 X_ohm = df_lines_380kv[:, "Reactance [Ohm]"]
 
-lengths = X_ohm / x_per_km
+lengths = X_ohm * 10^3 / x_per_km # I assume that their reactance is in m Ω and not in Ω. Otherwise I can not explain this
+minimum(lengths)
+mean(lengths) 
+std(lengths)
 
-histogram(lengths, xaxis = L"l [km]", legend = false)
+plt = histogram(lengths, xaxis = L"l [km]", legend = false, normalize = :probability)
+savefig(plt, "plots/pantagruel_lines.pdf")

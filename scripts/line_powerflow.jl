@@ -33,9 +33,7 @@ v_pos = Vector{Vector{Float64}}(undef, num_nodes)
 for i in 1:num_nodes
     v_pos[i] = v_positions[i, :]
 end
-
 eg = EmbeddedGraph(pg.graph, v_pos)
-
 
 ##
 L = get_effective_distances(eg; mean_len_km = mean_len_km, shortest_line_km = 0.06)
@@ -56,17 +54,6 @@ maximum(dist_nodes_connected)
 
 ## Line Loading large grid
 p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
-histogram(p_nodes, bins = 20)
-
-mean(abs.(p_nodes)) # should be around 3.2
-
-gen = findall(p_nodes .> 0.0)
-con = findall(p_nodes .< 0.0)
-
-sum(p_nodes[gen])
-sum(p_nodes[con])
-
-##
 _, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
 P = vcat(values(P)...)
 P_max = vcat(values(P_max)...)
@@ -75,8 +62,9 @@ line_loading = (P ./ P_max) .* 100
 
 ll_mean = mean(line_loading)
 ll_max = maximum(line_loading)
+ll_large = line_loading
 
-plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
+plt = histogram(line_loading, legend = false, xlabel = L"LL[\%]", ylabel = L"p(LL)", normalized = true)
 savefig(plt, "plots/line_loading_distribution_large_grid.pdf")
 
 ## Peak demand grid
@@ -110,18 +98,7 @@ c_l = mean_len_km / d_mean
 area = (2 * c_l)^2
 maximum(dist_nodes_connected)
 
-##
 p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
-histogram(p_nodes, bins = 20)
-
-mean(abs.(p_nodes)) # should be around 3.2
-
-gen = findall(p_nodes .> 0.0)
-con = findall(p_nodes .< 0.0)
-
-sum(p_nodes[gen])
-sum(p_nodes[con])
-
 
 ##
 _, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
@@ -132,9 +109,7 @@ line_loading = (P ./ P_max) .* 100
 
 ll_mean = mean(line_loading)
 ll_max = maximum(line_loading)
-
-plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
-savefig(plt, "plots/line_loading_distribution_small_grid.pdf")
+ll_small = line_loading
 
 ## Power Normalized via area
 file_path = joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized.json")
@@ -146,20 +121,8 @@ v_nodes = ones(num_nodes)
 op_ancillary = get_ancillary_operationpoint(p_nodes, v_nodes, num_nodes, num_nodes, pg.lines)
 ic_guess = get_initial_guess(pg, op_ancillary)
 
-
 op = find_operationpoint(pg, ic_guess)
 num_nodes = length(pg.nodes)
-
-##
-histogram(p_nodes, bins = 20)
-
-mean(abs.(p_nodes))
-
-gen = findall(p_nodes .> 0.0)
-con = findall(p_nodes .< 0.0)
-
-sum(p_nodes[gen])
-sum(p_nodes[con])
 
 ##
 _, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
@@ -170,6 +133,11 @@ line_loading = (P ./ P_max) .* 100
 
 ll_mean = mean(line_loading)
 ll_max = maximum(line_loading)
+ll_small_normalization = line_loading
 
-plt = histogram(line_loading, legend = false, xlabel = L"LL[%]", ylabel = L"p(LL)", normalized = true)
-savefig(plt, "plots/line_loading_distribution_power_normalized_via_area.pdf")
+##
+stephist(ll_large,  normalize = :probability, label = L"Large")
+stephist!(ll_small,  normalize = :probability, label = L"Small")
+plt = stephist!(ll_small_normalization, xaxis = L"LL[\%]", normalize = :probability, label = L"Norm")
+
+savefig(plt, "plots/line_loading_comparison.pdf")

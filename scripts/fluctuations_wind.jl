@@ -18,7 +18,7 @@ op = find_operationpoint(pg)
 ω_nodes, nodes, fluc_node_idxs, P_set, Q_set, f_idx= nodal_data(pg) # Accessing the node data from the grid
 
 ## Using an intermittent wind power fluctuation Langevin-type model to generate fluctuating time series
-tspan = (0.0, 1000.0)
+tspan = (0.0, 5000.0)
 step_size = 0.01
 t_stops = collect(tspan[1]:step_size:tspan[end])
 
