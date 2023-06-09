@@ -21,5 +21,5 @@ module SyntheticPowerGridsPaper
     export my_graph_plot
 
     include("utils.jl")
-    export nodal_data
+    export nodal_data, R_squared
 end

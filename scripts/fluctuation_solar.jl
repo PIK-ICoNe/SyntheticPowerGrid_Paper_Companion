@@ -19,7 +19,7 @@ op = find_operationpoint(pg)
 ω_nodes, nodes, fluc_node_idxs, P_set, Q_set, f_idx = nodal_data(pg) # Accessing the node data from the grid
 tspan = (0.0, 1000.0)
 Δt = 0.001
-step_size = 0.01
+step_size = 0.001
 t_stops = collect(tspan[1]:step_size:tspan[end])
 
 ## Load all solar time series
