@@ -9,3 +9,15 @@ function nodal_data(pg::PowerGrid)
 
     return ω_nodes, nodes, fluc_node_idxs, P_set, Q_set, f_idx
 end
+
+function R_squared(y, f)
+    e = y .- f
+    y_mean = mean(y)
+    
+    SS_res = sum(e.^2)
+    SS_tot = sum((y .- y_mean).^2)
+
+    R_2 = 1 - SS_res / SS_tot
+
+    return R_2
+end
