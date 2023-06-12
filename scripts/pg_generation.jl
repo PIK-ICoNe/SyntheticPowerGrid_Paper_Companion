@@ -53,31 +53,20 @@ file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_peak_dem
 write_powergrid(pg, file_path, Json)
 writedlm(joinpath(@__DIR__, "../data/powergrids/power_grid_peak_demand_vertex_positions.txt"), pg_struct_new.embedded_graph.vertexpos)
 
-## Grid with power normalized via area, peak demand
-using Distributions
-num_nodes = 100
-P_base = 1.0e8 
-P0 = 1.0
+## Area matches area of Germany
+parameters_third_order = Dict(:X => 1.0, :γ => 0.2, :α => 2.0) 
+parameters_droop_controlled = Dict(:τ_Q => 5.0, :K_P => 5, :K_Q => 5.0, :τ_P => 1.0) 
 
-power_dist = MixtureModel(Normal[Normal(P0, P0/2), Normal(-P0, P0/2)]) # Distribution for the active power
-P_vec = rand(power_dist, num_nodes)                                    # Power Generation / Consumption of the nodes
-P_vec .-= sum(P_vec) / (num_nodes)                                     # Assure power balance
+nodal_dynamics = [(1/3, get_ThirdOrderMachineApprox, parameters_third_order), (1/3, get_DroopControlledInverterApprox, parameters_droop_controlled), (1/3, get_PQ, nothing)]
 
-P_tot_on_peak = (86031 * 10^6/4) * (1 / P_base) # MW to p.u. 
-consumers = findall(P_vec .< 0.0)
-demand_synthetic = abs.(sum(P_vec[consumers]))
+area_ge = 357111 # [km²]
+a_ge = sqrt(area_ge) 
+c_l = a_ge / 2
+num_nodes = 438
 
-c_demand = P_tot_on_peak / demand_synthetic
-
-P_re = c_demand * P_vec
-
-mean(abs.(P_re))
-
-##
-pg_struct = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics, lines = :StaticLine , P_vec = P_re, maxiters = 10)
+pg_struct = PGGeneration(num_nodes = num_nodes, nodal_dynamics = nodal_dynamics, lines = :StaticLine, P0 = 1.0, mean_len_km = c_l, probabilistic_capacity_expansion = true)
 pg, op, pg_struct_new, rejections = generate_powergrid_dynamics(pg_struct)
 
-file_path = joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized.json")
+file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_area_normalized.json")
 write_powergrid(pg, file_path, Json)
 writedlm(joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized_vertex_positions.txt"), pg_struct_new.embedded_graph.vertexpos)
-

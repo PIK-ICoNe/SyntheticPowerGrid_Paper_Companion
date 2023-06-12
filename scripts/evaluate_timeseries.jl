@@ -36,7 +36,7 @@ rocof_s = readdlm("data/solar_fluctuations/corr/rocof.txt")
 ## Performance Measures
 calculate_performance_measures(f_d, rocof_d; T = 10000.0, Δt = step_size)
 calculate_performance_measures(f_w, rocof_w; T = 10000.0, Δt = step_size)
-calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = 0.001)
+calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = step_size)
 
 ## Plot power time series
 plt_p_d = plot(t_plt, p_d[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
@@ -74,7 +74,7 @@ rocof_s = readdlm("data/solar_fluctuations/uncorr/rocof.txt")
 ## Performance Measures
 calculate_performance_measures(f_d, rocof_d; T = 10000.0, Δt = step_size)
 calculate_performance_measures(f_w, rocof_w; T = 10000.0, Δt = step_size)
-calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = 0.001)
+calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = step_size)
 
 ## Plot power time series
 plt_p_d = plot(t_plt, p_d[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")

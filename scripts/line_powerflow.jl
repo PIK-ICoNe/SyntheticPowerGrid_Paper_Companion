@@ -17,40 +17,11 @@ import SyntheticPowerGrids.get_ancillary_operationpoint
 import SyntheticPowerGrids.get_initial_guess
 default(grid = false, foreground_color_legend = nothing, bar_edges = false, lw = 3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 11, labelfontsize = 12, tickfontsize = 10)
 
-mean_len_km = 37.12856121212121
-area_ge = 357111 # [km²]
-a_ge = sqrt(area_ge)
-
 ## LArge grid
 file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_large.json")
 pg = read_powergrid(file_path, Json) 
 op = find_operationpoint(pg)
 num_nodes = length(pg.nodes)
-v_positions = readdlm(joinpath(@__DIR__, "../data/powergrids/power_grid_large_vertex_positions.txt"))
-
-v_pos = Vector{Vector{Float64}}(undef, num_nodes)
-
-for i in 1:num_nodes
-    v_pos[i] = v_positions[i, :]
-end
-eg = EmbeddedGraph(pg.graph, v_pos)
-
-##
-L = get_effective_distances(eg; mean_len_km = mean_len_km, shortest_line_km = 0.06)
-
-dist_nodes = EmbeddedGraphs.weights(eg)
-
-dist_nodes_connected = vcat(dist_nodes...)
-unconnected_idx = findall(iszero, dist_nodes_connected) # Unconnected nodes have a length of d = 0.0
-deleteat!(dist_nodes_connected, unconnected_idx) 
-
-d_mean = mean(dist_nodes_connected)
-
-c_l = mean_len_km / d_mean
-
-area = (2 * c_l)^2
-
-maximum(dist_nodes_connected)
 
 ## Line Loading large grid
 p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
@@ -72,33 +43,6 @@ file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_peak_dem
 pg = read_powergrid(file_path, Json) 
 op = find_operationpoint(pg)
 num_nodes = length(pg.nodes)
-v_positions = readdlm(joinpath(@__DIR__, "../data/powergrids/power_grid_peak_demand_vertex_positions.txt"))
-
-v_pos = Vector{Vector{Float64}}(undef, num_nodes)
-
-for i in 1:num_nodes
-    v_pos[i] = v_positions[i, :]
-end
-
-eg = EmbeddedGraph(pg.graph, v_pos)
-
-##
-L = get_effective_distances(eg; mean_len_km = mean_len_km, shortest_line_km = 0.06)
-
-dist_nodes = EmbeddedGraphs.weights(eg)
-
-dist_nodes_connected = vcat(dist_nodes...)
-unconnected_idx = findall(iszero, dist_nodes_connected) # Unconnected nodes have a length of d = 0.0
-deleteat!(dist_nodes_connected, unconnected_idx) 
-
-d_mean = mean(dist_nodes_connected)
-
-c_l = mean_len_km / d_mean
-
-area = (2 * c_l)^2
-maximum(dist_nodes_connected)
-
-p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
 
 ##
 _, _, P, P_max = validate_power_flow_on_lines(op, :StaticLine)
@@ -111,17 +55,11 @@ ll_mean = mean(line_loading)
 ll_max = maximum(line_loading)
 ll_small = line_loading
 
-## Power Normalized via area
-file_path = joinpath(@__DIR__, "../data/powergrids/power_grid_area_normalized.json")
+## Normalized via area
+file_path = joinpath(@__DIR__, "../data/powergrids/synthetic_power_grid_area_normalized.json")
 pg = read_powergrid(file_path, Json) 
-
 p_nodes = map(n -> pg.nodes[n].P, 1:num_nodes)
-v_nodes = ones(num_nodes)
-
-op_ancillary = get_ancillary_operationpoint(p_nodes, v_nodes, num_nodes, num_nodes, pg.lines)
-ic_guess = get_initial_guess(pg, op_ancillary)
-
-op = find_operationpoint(pg, ic_guess)
+op = find_operationpoint(pg)
 num_nodes = length(pg.nodes)
 
 ##
@@ -134,6 +72,9 @@ line_loading = (P ./ P_max) .* 100
 ll_mean = mean(line_loading)
 ll_max = maximum(line_loading)
 ll_small_normalization = line_loading
+plt=histogram(ll_small_normalization, xaxis = L"LL[\%]", normalize = :probability, yaxis = L"p(LL)", legend = false)
+
+savefig(plt, "plots/line_loading_area.pdf")
 
 ##
 stephist(ll_large,  normalize = :probability, label = L"Large")

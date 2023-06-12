@@ -17,9 +17,8 @@ pg = read_powergrid(file_path, Json)
 op = find_operationpoint(pg)
 
 ω_nodes, nodes, fluc_node_idxs, P_set, Q_set, f_idx = nodal_data(pg) # Accessing the node data from the grid
-tspan = (0.0, 1000.0)
 Δt = 0.001
-step_size = 0.001
+step_size = 0.01
 t_stops = collect(tspan[1]:step_size:tspan[end])
 
 ## Load all solar time series
@@ -45,38 +44,30 @@ end
 ## Interpolate the time series
 P_pv_corr = P_pv_arr[1]
 t = collect(range(0.0, length = length(P_pv_corr), step = Δt))
+tspan = (0.0, t[end])
 P_pv_inter = linear_interpolation(t, P_pv_corr)
 
 ## Multi Node Fluctuations, completely correlated, exchange all PQAlgebraic with FluctuationNode
 fluctuations_corr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter(t), t -> Q_set[f]), 1:length(fluc_node_idxs))
-pg_solar_corr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
+pg_solar = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_corr)
 
-## Simulate a trajectory
-ode = ODEProblem(rhs(pg_solar_corr), op.vec, tspan)
-sol_corr_solar = solve(ode, Rodas4())
-pg_sol_corr_solar = PowerGridSolution(sol_corr_solar, pg_solar_corr)
+ode = ODEProblem(rhs(pg_solar), op.vec, tspan)
+sol = solve(ode, Rodas4(), maxiters = 10^6)
+pg_sol = PowerGridSolution(sol, pg_solar)
 
-f = sol_corr_solar(t_stops, idxs = f_idx).u./(2π)
-p = pg_sol_corr_solar(t_stops, fluc_node_idxs, :p)
-rocof = sol_corr_solar(t_stops, Val{1}, idxs = f_idx).u./(2π)
-
-writedlm("data/solar_fluctuations/corr/frequencies.txt", f)
-writedlm("data/solar_fluctuations/corr/powers.txt", transpose(p))
-writedlm("data/solar_fluctuations/corr/rocof.txt", rocof)
+writedlm("data/solar_fluctuations/corr/frequencies.txt", sol(t_stops, idxs = f_idx).u./(2π))
+writedlm("data/solar_fluctuations/corr/powers.txt", transpose(pg_sol(t_stops, fluc_node_idxs, :p)))
+writedlm("data/solar_fluctuations/corr/rocof.txt", sol(t_stops, Val{1}, idxs = f_idx).u./(2π))
 
 ## Multi Node Fluctuations, completely uncorrelated
 P_pv_inter = map(f -> linear_interpolation(t, P_pv_arr[f]), 1:length(fluc_node_idxs)) # Interpolate the time series
 fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter[f](t), t -> Q_set[f]), 1:length(fluc_node_idxs))
-pg_solar_uncorr = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
+pg_solar = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
-ode = ODEProblem(rhs(pg_solar_uncorr), op.vec, tspan)
-sol_uncorr_solar = solve(ode, Rodas4())
-pg_sol_uncorr_solar = PowerGridSolution(sol_uncorr_solar, pg_solar_uncorr)
+ode = ODEProblem(rhs(pg_solar), op.vec, tspan)
+@time sol = solve(ode, Rodas4(), maxiters = 10^6)
+pg_sol = PowerGridSolution(sol, pg_solar)
 
-f = sol_uncorr_solar(t_stops, idxs = f_idx).u./(2π)
-p = pg_sol_uncorr_solar(t_stops, fluc_node_idxs, :p)
-rocof = sol_uncorr_solar(t_stops, Val{1}, idxs = f_idx).u./(2π)
-
-writedlm("data/solar_fluctuations/uncorr/frequencies.txt", f)
-writedlm("data/solar_fluctuations/uncorr/powers.txt", transpose(p))
-writedlm("data/solar_fluctuations/uncorr/rocof.txt", rocof)
+writedlm("data/solar_fluctuations/corr/frequencies.txt", sol(t, idxs = f_idx).u./(2π))
+writedlm("data/solar_fluctuations/corr/powers.txt", transpose(pg_sol(t, fluc_node_idxs, :p)))
+writedlm("data/solar_fluctuations/corr/rocof.txt", sol(t, Val{1}, idxs = f_idx).u./(2π))
