@@ -19,12 +19,10 @@ default(grid = false, foreground_color_legend = nothing, bar_edges = false, lw =
 # Chosen Per Unit System
 P_base = 100 * 10^6
 V_base = 380 * 10^3
-
-# Base Admittance
-Y_base = P_base / (V_base)^2
+Y_base = P_base / (V_base)^2 # Base Admittance
 
 ##
-# Loading the SciGRIDs Dataset
+# Loading the SciGRID Dataset
 path = string(@__DIR__) * "/../data/sci_grids/"
 line_table = XLSX.readtable(joinpath(path, "links_de_power_151109.xlsx"), "links_de_power_151109")
 df_lines = DataFrame(line_table) 
@@ -67,11 +65,10 @@ mean_len_km = mean(lengths)
 ##
 # Finding the extrema of the dataset
 min_len = findmin(df_lines.length_m / 1000)[1]
+max_len = findmax(df_lines.length_m / 1000)[1]
 
 ## Power Grid Generation
-Y_abs_vec = []
 dist_nodes_vec = []
-
 N = 100
 
 for i in 1:1000
@@ -83,12 +80,8 @@ for i in 1:1000
     dest = dst.(edges(g.graph))
     source = src.(edges(g.graph))
 
-    # Calculate the Admittance in [1 / Ω]
-    Y, _ = get_line_admittance_matrix(g, L_matrix)
-
     for i in eachindex(source) # Only look at nodes which are connected by a line
         push!(dist_nodes_vec, L_matrix[source[i], dest[i]])
-        push!(Y_abs_vec, abs.(Y[source[i], dest[i]]))
     end
 end
 max_len = findmax(dist_nodes_vec)[1]
@@ -117,20 +110,3 @@ savefig(plt, "plots/line_length.pdf")
 # Shunt Capacitance of the lines
 C_shunt_per_km = df_380kV.c_nfkm ./ ((df_380kV.wires ./ 4) .* (df_380kV.cables ./ 3)) # SciGRID Paper eq. (3)
 unique!(C_shunt_per_km) # Capacitance per length [nF/km] -> Same as in the dena model 
-
-##
-# Coupling constant / Admittance Magnitude
-using StatsBase
-K_dens = kde(Y_abs_vec ./ Y_base)
-mode_K = findmax(K_dens.density)[1]
-median_K = median(Y_abs_vec ./ Y_base)
-mean_K = mean(Y_abs_vec ./ Y_base)
-
-StatsPlots.density(Y_abs_vec ./ Y_base, xlabel = L"|Y_{ml}| \ [p.u.]", ylabel = L"p(|Y_{ml}|)", label = "Synthetic Grids", lw = 3)
-plt = vline!([6.0], label = "Theoretical Physics Community", linestyle = :dash)
-savefig(plt, "plots/coupling.pdf")
-
-StatsPlots.density(Y_abs_vec, xlabel = L"|Y_{ml}| \ [1/Ω]", ylabel = L"p(|Y_{ml}|)", lw = 3, label = "Synthetic Networks")
-
-# K ≈ 6 in basin stability lit.?, |Y_ml| = |K_ml|
-# Coupling constant unit? Should be [p.u.]
