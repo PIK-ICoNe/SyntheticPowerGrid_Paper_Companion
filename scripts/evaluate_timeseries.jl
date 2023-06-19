@@ -13,9 +13,13 @@ using DelimitedFiles
 using LaTeXStrings
 
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
+
 ## 
 step_size = 0.01
+s_size_solar_corr = 0.005
+s_size_solar_uncorr = 0.002
 tspan_plt = (100.0, 200.0)
+
 plt_start = Int(tspan_plt[1] / step_size)
 plt_end = Int(tspan_plt[2] / step_size) 
 t_plt = collect(0.0:step_size:tspan_plt[2]-tspan_plt[1])
@@ -34,9 +38,14 @@ rocof_w = readdlm("data/wind_fluctuations/corr/rocof.txt")
 rocof_s = readdlm("data/solar_fluctuations/corr/rocof.txt")
 
 ## Performance Measures
-calculate_performance_measures(f_d, rocof_d; T = 10000.0, Δt = step_size)
 calculate_performance_measures(f_w, rocof_w; T = 10000.0, Δt = step_size)
-calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = step_size)
+calculate_performance_measures(f_d, rocof_d; T = 10000.0, Δt = step_size)
+calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = s_size_solar_corr)
+
+##
+plt_start_solar = Int(tspan_plt[1] / s_size_solar_corr)
+plt_end_solar = Int(tspan_plt[2] / s_size_solar_corr) 
+t_plt_solar = collect(0.0:s_size_solar_corr:tspan_plt[2]-tspan_plt[1])
 
 ## Plot power time series
 plt_p_d = plot(t_plt, p_d[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
@@ -45,7 +54,7 @@ savefig(plt_p_d, "plots/demand_fluc/multi_node_demand_fluc_correlated_active_pow
 plt_p_w = plot(t_plt, p_w[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 savefig(plt_p_w, "plots/wind_fluc/multi_node_wind_fluc_correlated_active_power.png")
 
-plt_p_s = plot(t_plt, p_s[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plt_p_s = plot(t_plt_solar, p_s[plt_start_solar:plt_end_solar, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 savefig(plt_p_s, "plots/solar_fluc/multi_node_solar_fluc_correlated_active_power.png")
 
 ## Plot frequency time series
@@ -55,7 +64,7 @@ savefig(plt_f_d, "plots/demand_fluc/multi_node_demand_fluc_correlated_frequency.
 plt_f_w = plot(t_plt, f_w[plt_start:plt_end, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
 savefig(plt_f_w, "plots/wind_fluc/multi_node_wind_fluc_correlated_frequency.png")
 
-plt_f_s = plot(t_plt, f_s[plt_start:plt_end, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
+plt_f_s = plot(t_plt_solar, f_s[plt_start_solar:plt_end_solar, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
 savefig(plt_f_s, "plots/solar_fluc/multi_node_solar_fluc_correlated_frequency.png")
 
 ## Load the uncorrelated data
@@ -71,10 +80,15 @@ rocof_d = readdlm("data/demand_fluctuations/uncorr/rocof.txt")
 rocof_w = readdlm("data/wind_fluctuations/uncorr/rocof.txt")
 rocof_s = readdlm("data/solar_fluctuations/uncorr/rocof.txt")
 
+##
+plt_start_solar = Int(tspan_plt[1] / s_size_solar_uncorr)
+plt_end_solar = Int(tspan_plt[2] / s_size_solar_uncorr) 
+t_plt_solar = collect(0.0:s_size_solar_uncorr:tspan_plt[2]-tspan_plt[1])
+
 ## Performance Measures
 calculate_performance_measures(f_d, rocof_d; T = 10000.0, Δt = step_size)
 calculate_performance_measures(f_w, rocof_w; T = 10000.0, Δt = step_size)
-calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = step_size)
+calculate_performance_measures(f_s, rocof_s; T = 1000.0, Δt = s_size_solar_uncorr)
 
 ## Plot power time series
 plt_p_d = plot(t_plt, p_d[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
@@ -83,7 +97,7 @@ savefig(plt_p_d, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_active_p
 plt_p_w = plot(t_plt, p_w[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 savefig(plt_p_w, "plots/wind_fluc/multi_node_wind_fluc_uncorrelated_active_power.png")
 
-plt_p_s = plot(t_plt, p_s[plt_start:plt_end, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
+plt_p_s = plot(t_plt_solar, p_s[plt_start_solar:plt_end_solar, :], legend = false, ylabel = L"P[p.u.]", xlabel = L"t[s]")
 savefig(plt_p_s, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_active_power.png")
 
 ## Plot frequency time series
@@ -93,5 +107,5 @@ savefig(plt_f_d, "plots/demand_fluc/multi_node_demand_fluc_uncorrelated_frequenc
 plt_f_w = plot(t_plt, f_w[plt_start:plt_end, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
 savefig(plt_f_w, "plots/wind_fluc/multi_node_wind_fluc_uncorrelated_frequency.png")
 
-plt_f_s = plot(t_plt, f_s[plt_start:plt_end, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
+plt_f_s = plot(t_plt_solar, f_s[plt_start_solar:plt_end_solar, :], legend = false, ylabel = L"\Delta f [Hz]", xlabel = L"t[s]")
 savefig(plt_f_s, "plots/solar_fluc/multi_node_solar_fluc_uncorrelated_frequency.png")

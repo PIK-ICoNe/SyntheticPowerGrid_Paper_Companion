@@ -18,8 +18,6 @@ op = find_operationpoint(pg)
 
 ω_nodes, nodes, fluc_node_idxs, P_set, Q_set, f_idx = nodal_data(pg) # Accessing the node data from the grid
 Δt = 0.001
-step_size = 0.01
-t_stops = collect(tspan[1]:step_size:tspan[end])
 
 ## Load all solar time series
 file_paths = readdir("data/PVDataSet", join = true)
@@ -55,6 +53,9 @@ ode = ODEProblem(rhs(pg_solar), op.vec, tspan)
 sol = solve(ode, Rodas4(), maxiters = 10^6)
 pg_sol = PowerGridSolution(sol, pg_solar)
 
+step_size = round(mean(diff(sol.t)), digits = 3)
+t_stops = collect(tspan[1]:step_size:tspan[end])
+
 writedlm("data/solar_fluctuations/corr/frequencies.txt", sol(t_stops, idxs = f_idx).u./(2π))
 writedlm("data/solar_fluctuations/corr/powers.txt", transpose(pg_sol(t_stops, fluc_node_idxs, :p)))
 writedlm("data/solar_fluctuations/corr/rocof.txt", sol(t_stops, Val{1}, idxs = f_idx).u./(2π))
@@ -65,9 +66,12 @@ fluctuations_uncorr = map(f -> FluctuationNode(t -> P_set[f] + P_pv_inter[f](t),
 pg_solar = generate_powergrid_fluctuations(pg, fluc_node_idxs, fluctuations_uncorr)
 
 ode = ODEProblem(rhs(pg_solar), op.vec, tspan)
-@time sol = solve(ode, Rodas4(), maxiters = 10^6)
+sol = solve(ode, Rodas4(), maxiters = 10^6)
 pg_sol = PowerGridSolution(sol, pg_solar)
 
-writedlm("data/solar_fluctuations/corr/frequencies.txt", sol(t, idxs = f_idx).u./(2π))
-writedlm("data/solar_fluctuations/corr/powers.txt", transpose(pg_sol(t, fluc_node_idxs, :p)))
-writedlm("data/solar_fluctuations/corr/rocof.txt", sol(t, Val{1}, idxs = f_idx).u./(2π))
+step_size = round(mean(diff(sol.t)), digits = 3)
+t_stops = collect(tspan[1]:step_size:tspan[end])
+
+writedlm("data/solar_fluctuations/uncorr/frequencies.txt", sol(t_stops, idxs = f_idx).u./(2π))
+writedlm("data/solar_fluctuations/uncorr/powers.txt", transpose(pg_sol(t_stops, fluc_node_idxs, :p)))
+writedlm("data/solar_fluctuations/uncorr/rocof.txt", sol(t_stops, Val{1}, idxs = f_idx).u./(2π))

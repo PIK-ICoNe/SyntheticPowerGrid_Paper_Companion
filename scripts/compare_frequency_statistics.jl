@@ -16,8 +16,6 @@ using Plots.Measures
 default(grid = false, foreground_color_legend = nothing, bar_edges = false,  lw=3, framestyle =:box, msc = :auto, dpi=300, legendfontsize = 18, labelfontsize = 18, tickfontsize = 15)
 
 ##
-step_size = 0.01
-
 f_demand = readdlm("data/demand_fluctuations/uncorr/frequencies.txt")
 f_wind = readdlm("data/wind_fluctuations/uncorr/frequencies.txt")
 f_solar = readdlm("data/solar_fluctuations/uncorr/frequencies.txt")
@@ -64,5 +62,5 @@ plot(pdf_demand.x, pdf_demand.density ./ sum(pdf_demand.density), label = L"f_{d
 annotate!(-0.05, 0.0013, text(L"R^2= " * latexstring(r2_demand) , :black, :right, 15))
 plt_pdf_d = plot!(pdf_demand.x, pdf_d_n ./ sum(pdf_d_n), label = "", c = colorant"coral", ls = :dashdot, alpha = 0.7, xlims = x_lims)
 
-plt_pdf = Plots.plot(plt_pdf_s, plt_pdf_w, plt_pdf_d; layout=(1, 3), size=(1500, 400), xaxis = L"\Delta f [Hz]", left_margin=10mm, bottom_margin = 10mm)
+plt_pdf = Plots.plot(plt_pdf_w, plt_pdf_d, plt_pdf_s; layout=(1, 3), size=(1500, 400), xaxis = L"\Delta f [Hz]", left_margin=10mm, bottom_margin = 10mm)
 savefig(plt_pdf, "plots/pdf_frequency.pdf")
